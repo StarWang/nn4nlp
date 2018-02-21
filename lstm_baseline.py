@@ -37,8 +37,7 @@ if __name__ == '__main__':
     embeddings = load_embeddings(embedding_path)
     # word2id = {y:x for x, y in corpus.items()}
     use_cuda = torch.cuda.is_available()
-    print(use_cuda)
-    use_cuda = False
+    # use_cuda = False
     model = LSTM_basic(embedding_dim = embedding_dim, hidden_dim = hidden_dim, vocab_size = len(corpus),\
                        batch_size = batch_size, use_cuda = use_cuda, embeddings = embeddings)
     print(model)
@@ -77,14 +76,13 @@ if __name__ == '__main__':
             model.batch_size = len(labels)
             model.hidden = model.init_hidden()
             output = model(q, a)
-            print(type(output), type(Variable(l)))
-            loss = loss_function(output, Variable(l))
+            loss = loss_function(output.cpu(), Variable(l).cpu())
             loss.backward()
             optimizer.step()
 
             # Calculating training accuracy
             _, pred = torch.max(output.data, 1)
-            total_acc += (pred == labels).sum()
+            total_acc += (pred.cpu() == labels).sum()
             total += len(labels)
             total_loss += loss.data[0]
         train_loss_.append(total_loss / total)
@@ -112,11 +110,11 @@ if __name__ == '__main__':
             model.batch_size = len(labels)
             model.hidden = model.init_hidden()
             output = model(q, a)
-            loss = loss_function(output, Variable(labels))
+            loss = loss_function(output.cpu(), Variable(labels))
 
             # Calculating training accuracy
             _, pred = torch.max(output.data, 1)
-            total_acc += (pred == labels).sum()
+            total_acc += (pred.cpu() == labels).sum()
             total += len(labels)
             total_loss += loss.data[0]
         test_loss_.append(total_loss / total)
