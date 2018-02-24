@@ -38,7 +38,7 @@ class QA_Dataset(Dataset):
         tq = torch.LongTensor(np.array(q, dtype = np.int64))
         ta = torch.LongTensor(np.array(a, dtype = np.int64))
         tl = torch.LongTensor([l])
-        return tq, ta, tl
+        return tq, ta, tl, qa['pid'], qa['qid'], qa['label']
 
     def __len__(self):
         return len(self.qas)

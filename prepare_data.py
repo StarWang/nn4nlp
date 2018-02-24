@@ -36,7 +36,7 @@ for fname in fnames:
         for qa in qas:
             q = qa['tokens']
             a = qa['answers']
-            a = [pad_ans(x, 32) for x in a]
+            a = [pad_ans(x, 8) for x in a]
             q = pad_ans(q, 32)
             alist = list(sum(a, []))
             data = {}
@@ -53,10 +53,9 @@ for fname in fnames:
             xs.append(data)
     with open(os.path.join(fpath, fname), 'w') as outfile:
         json.dump(xs, outfile)
-'''
+
 lst = list(corpus)
 sorted(lst)
 word2id = {k:v for v, k in enumerate(lst)}
 with open('corpus.pkl', 'wb') as handle:
-    pickle.dump(word2id, handle, protocol=pickle.HIGHEST_PROTOCOL)
-'''
+    pickle.dump(word2id, handle)

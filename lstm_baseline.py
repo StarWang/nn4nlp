@@ -9,16 +9,17 @@ from utils import LSTM_basic, QA_Dataset
 import sys
 import pickle
 import numpy as np
+import json
 
 torch.manual_seed(11)
-corpus_path = './filtered_corpus.pickle'
+corpus_path = './corpus.pkl'
 embedding_path = './pretrained_embed.npy'
-save_model = True
+save_model = False
 embedding_dim = 300
 hidden_dim = 100
 batch_size = 32
-learning_rate = 0.05 
-num_epochs = 50
+learning_rate = 0.01
+num_epochs = 30
 
 def load_corpus(corpus_path):
     with open(corpus_path, 'rb') as handle:
@@ -53,12 +54,14 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_set, batch_size = batch_size, shuffle = False, num_workers = 4)
     dev_loader = DataLoader(dev_set, batch_size = batch_size, shuffle = False, num_workers = 4)
     
-    optimizer = optim.SGD(model.parameters(), lr = learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr = learning_rate)
     loss_function = nn.CrossEntropyLoss()
     train_loss_ = []
     test_loss_ = []
     train_acc_ = []
     test_acc_ = []
+
+    rawQuestions, rawAnswers, rawLabels, rawOutput = [], [], [], []
 
     # Training 
     for epoch in range(num_epochs):
@@ -66,7 +69,7 @@ if __name__ == '__main__':
         total_loss = 0.0
         total = 0
         for iter, data in enumerate(train_loader):
-            questions, answers, labels = data
+            questions, answers, labels, _, _, _ = data
             labels = torch.squeeze(labels)
             l = labels
             if use_cuda:
@@ -99,7 +102,7 @@ if __name__ == '__main__':
         total_loss = 0.0
         total = 0
         for iter, data in enumerate(dev_loader):
-            questions, answers, labels = data
+            questions, answers, labels, origQuestions, origAnswers, origLabels = data
             labels = torch.squeeze(labels)
             l = labels
             if use_cuda:
@@ -111,6 +114,11 @@ if __name__ == '__main__':
             model.hidden = model.init_hidden()
             output = model(q, a)
             loss = loss_function(output.cpu(), Variable(labels))
+            if epoch == num_epochs - 1:
+                rawQuestions.append(origQuestions)
+                rawAnswers.append(origAnswers)
+                rawLabels.append(origLabels)
+                rawOutput.append(output.data.numpy())
 
             # Calculating training accuracy
             _, pred = torch.max(output.data, 1)
@@ -124,3 +132,19 @@ if __name__ == '__main__':
               (epoch, num_epochs, train_loss_[epoch], test_loss_[epoch],
                                  train_acc_[epoch], test_acc_[epoch]))
 
+    correct, wrong = [], []
+    for i in range(len(rawLabels)):
+        for j in range(len(rawOutput[i])):
+            # print(rawLabels[i][j], rawOutput[i][j])
+            choice = int(np.argmax(rawOutput[i][j]))
+            if rawLabels[i][j] == choice:
+                correct.append((rawQuestions[i][j], rawAnswers[i][j], rawLabels[i][j], choice))
+            else:
+                wrong.append((rawQuestions[i][j], rawAnswers[i][j], rawLabels[i][j], choice))
+    
+    with open("correct_160.json", "w") as f:
+        json.dump(correct, f)
+
+    with open("wrong_160.json", "w") as f:
+        json.dump(wrong, f)
+                
