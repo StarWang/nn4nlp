@@ -12,14 +12,14 @@ import numpy as np
 import json
 
 torch.manual_seed(11)
-corpus_path = './corpus.pkl'
-embedding_path = './pretrained_embed.npy'
+corpus_path = './corpus_all.pkl'
+embedding_path = './pretrained_embed_all.npy'
 save_model = False
 embedding_dim = 300
-hidden_dim = 100
+hidden_dim = 32
 batch_size = 32
-learning_rate = 0.01
-num_epochs = 30
+learning_rate = 0.002
+num_epochs = 100
 
 def load_corpus(corpus_path):
     with open(corpus_path, 'rb') as handle:
@@ -44,9 +44,9 @@ if __name__ == '__main__':
     print(model)
     if use_cuda:
         model = model.cuda()
-    data_dir = './ready_data_prepadding'
-    ftrain = 'mc160.train.tsv'
-    fdev = 'mc160.dev.tsv'
+    data_dir = './ready_data_all'
+    ftrain = 'mc500.train.tsv'
+    fdev = 'mc500.dev.tsv'
 
     train_set = QA_Dataset(data_dir, ftrain, corpus)
     dev_set = QA_Dataset(data_dir, fdev, corpus)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_set, batch_size = batch_size, shuffle = False, num_workers = 4)
     dev_loader = DataLoader(dev_set, batch_size = batch_size, shuffle = False, num_workers = 4)
     
-    optimizer = optim.Adam(model.parameters(), lr = learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr = learning_rate, weight_decay = 1e-2)
     loss_function = nn.CrossEntropyLoss()
     train_loss_ = []
     test_loss_ = []
@@ -111,14 +111,13 @@ if __name__ == '__main__':
                 q, a = Variable(questions).t(), Variable(answers).t()
 
             model.batch_size = len(labels)
-            model.hidden = model.init_hidden()
             output = model(q, a)
             loss = loss_function(output.cpu(), Variable(labels))
             if epoch == num_epochs - 1:
                 rawQuestions.append(origQuestions)
                 rawAnswers.append(origAnswers)
                 rawLabels.append(origLabels)
-                rawOutput.append(output.data.numpy())
+                rawOutput.append(output.data.cpu().numpy())
 
             # Calculating training accuracy
             _, pred = torch.max(output.data, 1)
@@ -142,9 +141,9 @@ if __name__ == '__main__':
             else:
                 wrong.append((rawQuestions[i][j], rawAnswers[i][j], rawLabels[i][j], choice))
     
-    with open("correct_160.json", "w") as f:
+    with open("correct_500_all.json", "w") as f:
         json.dump(correct, f)
 
-    with open("wrong_160.json", "w") as f:
+    with open("wrong_500_all.json", "w") as f:
         json.dump(wrong, f)
                 

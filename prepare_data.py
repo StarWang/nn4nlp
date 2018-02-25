@@ -2,11 +2,12 @@ import json
 import os, sys
 sys.path.append('./')
 import pickle
+from utils import replica
 
 fnames = os.listdir('./data/')
 fnames = [fname for fname in fnames if '.tsv' in fname]
 
-fpath = './' + 'ready_data_prepadding/'
+fpath = './' + 'ready_data_all/'
 corpus = set()
 padding = 'UNK'
 def pad_ans(lst, threshold):
@@ -36,7 +37,7 @@ for fname in fnames:
         for qa in qas:
             q = qa['tokens']
             a = qa['answers']
-            a = [pad_ans(x, 8) for x in a]
+            a = [replica(x, 32) for x in a]
             q = pad_ans(q, 32)
             alist = list(sum(a, []))
             data = {}
@@ -53,9 +54,9 @@ for fname in fnames:
             xs.append(data)
     with open(os.path.join(fpath, fname), 'w') as outfile:
         json.dump(xs, outfile)
-
+corpus.add('UNK')
 lst = list(corpus)
 sorted(lst)
 word2id = {k:v for v, k in enumerate(lst)}
-with open('corpus.pkl', 'wb') as handle:
+with open('corpus_all.pkl', 'wb') as handle:
     pickle.dump(word2id, handle)
