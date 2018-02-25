@@ -16,9 +16,9 @@ corpus_path = './corpus_all.pkl'
 embedding_path = './pretrained_embed_all.npy'
 save_model = False
 embedding_dim = 300
-hidden_dim = 32
+hidden_dim = 64
 batch_size = 32
-learning_rate = 0.002
+learning_rate = 0.0001
 num_epochs = 100
 
 def load_corpus(corpus_path):
@@ -51,10 +51,10 @@ if __name__ == '__main__':
     train_set = QA_Dataset(data_dir, ftrain, corpus)
     dev_set = QA_Dataset(data_dir, fdev, corpus)
 
-    train_loader = DataLoader(train_set, batch_size = batch_size, shuffle = False, num_workers = 4)
-    dev_loader = DataLoader(dev_set, batch_size = batch_size, shuffle = False, num_workers = 4)
+    train_loader = DataLoader(train_set, batch_size = batch_size, shuffle = True, num_workers = 4)
+    dev_loader = DataLoader(dev_set, batch_size = batch_size, shuffle = True, num_workers = 4)
     
-    optimizer = optim.Adam(model.parameters(), lr = learning_rate, weight_decay = 1e-2)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr = learning_rate, weight_decay = 1e-2)
     loss_function = nn.CrossEntropyLoss()
     train_loss_ = []
     test_loss_ = []
