@@ -85,7 +85,6 @@ if __name__ == '__main__':
                 c = Variable(answers[2]).t()
                 d = Variable(answers[3]).t()
             model.batch_size = len(labels)
-            model.hidden = model.init_hidden()
             output = model(q, a, b, c, d)
             loss = loss_function(output.cpu(), Variable(l).cpu())
             loss.backward()
