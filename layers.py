@@ -10,22 +10,27 @@ class StackedBiLSTM(nn.Module):
 		super(StackedBiLSTM, self).__init__()
 		self.padding = padding
 		self.dropout_prob = dropout_prob
+		self.dropput = nn.Dropout(dropout_prob)
 		self.layers = []
 		for i in range(num_layers):
 			if i == 0:
 				lstm_input_size = input_size
 			else:
 				lstm_input_size = 2 * hidden_size
-			self.layers.append(nn.LSTM(lstm_input_size, hidden_size, 1, bidirectional=True))
+			self.layers.append(nn.LSTM(lstm_input_size, hidden_size, 1, bidirectional=True, batch_first=True))
 	
 	def forward(self, input_):
-		output = []
-		lstm_output = input_
+    	# input_: B x len x dim
+		# output: B x len x 2*dim 
 		for i in range(len(self.layers)):
+    		if self.dropout_prob > 0:
+    			lstm_output = self.dropput(lstm_output)
 			lstm_output = self.layers[i](lstm_output)[0]
-			output.append(lstm_output)
 
+		output = lstm_output
 		return output
+	
+	
 
 class SequenceAttentionMM(nn.Module):
 	def __init__(self, input_size, output_size, dropout_prob = 0, name = ''):
@@ -45,9 +50,10 @@ class SequenceAttentionMM(nn.Module):
 		v_ = self.activation(self.W1(v)) # v_: B x len2 x output_size
 
 		alpha = u_.bmm(v_.permute(0, 2, 1)) # alpha: B x len1 x len2
+		alpha.data.masked_fill_(v_mask.data.expand(alpha.size()), -float('inf'))
 		alpha = F.softmax(alpha, dim = 2)
 
-		output = alpha.bmm(v_)
+		output = alpha.bmm(v)
 		if self.dropout_prob > 0:
 			output = self.dropout(output)
 		return output
@@ -56,7 +62,6 @@ class SequenceAttentionMV(nn.Module):
 	def __init__(self, input_size, output_size, name = ''):
 		super(SequenceAttentionMM, self).__init__()
 		self.W1 = nn.Linear(input_size, output_size) # input_size Dim2, output_size Dim1
-		self.activation = nn.ReLU()
 		self.name = name # use the name field to debug
 	
 	# u: B x len1 x Dim1
@@ -67,6 +72,7 @@ class SequenceAttentionMV(nn.Module):
 		v_ = self.W1(v) # v_: B x Dim1
 
 		alpha = u.bmm(v_.unsqueeze(2)).permute(0, 2, 1) # alpha: B x 1 x len1
+		alpha.data.masked_fill_(u_mask.data, -float('inf'))
 		alpha = F.softmax(alpha, dim = 2)
 
 		output = alpha.bmm(u).squeeze(1)
@@ -81,8 +87,9 @@ class SelfAttention(nn.Module):
 	# u: B x len x Dim
 	# output: B x Dim
 	def forward(self, u, u_mask):
-		u_ = self.W2(b)
-		alpha = F.softmax(u_.permute(0, 2, 1)) # alpha: B x 1 x len
+		u_ = self.W2(u)
+		u_.data.masked_fill_(u_mask.data, -float('inf'))
+		alpha = F.softmax(u_.permute(0, 2, 1), dim = 2) # alpha: B x 1 x len
 
 		return alpha.bmm(u).squeeze(1)
 
