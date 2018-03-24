@@ -71,4 +71,4 @@ def filter_embedding(embedding_path, word_dict, save_path):
 '''
 
 def get_i2w(w2i):
-    return
+    return dict((v, k) for k, v in w2i.items())
