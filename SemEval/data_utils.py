@@ -2,17 +2,18 @@ import torch
 import random
 import numpy as np
 import json
+from collections import defaultdict
 
 class Sample():
-    def __init__(self, info):
+    def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict):
         # concatenation of dataset id (trial/train/dev/test), document id,
         # question id and choice id
         self.id = info['id']
 
         # text in the document, question and choice
-        self.doc = info['d_words']
-        self.question = info['q_words']
-        self.choice = info['c_words']
+        self.doc = [word_dict[w] for w in info['d_words']]
+        self.question = [word_dict[w] for w in info['q_words']]
+        self.choice = [word_dict[w] for w in info['c_words']]
 
         # label, for test set, the label is always -1
         self.label = info['label']
@@ -23,15 +24,15 @@ class Sample():
         self.in_c = info['in_c']
 
         # named entity for each document word
-        self.d_ner = info['d_ner']
+        self.d_ner = [ne_dict[w] for w in info['d_ner']]
 
         # for each word in the document, whether its relation with each word in the question/choice indicated by ConceptNet
-        self.d_q_relation = info['p_q_relation']
-        self.d_c_relation = info['p_c_relation']
+        self.d_q_relation = [relation_dict[w] for w in info['p_q_relation']]
+        self.d_c_relation = [relation_dict[w] for w in info['p_c_relation']]
 
         # pos_tag of words in the passage/question
-        self.d_pos = info['d_pos']
-        self.q_pos = info['q_pos']
+        self.d_pos = [pos_dict[w] for w in info['d_pos']]
+        self.q_pos = [pos_dict[w] for w in info['q_pos']]
 
         # term frequency
         self.tf = info['tf']
@@ -40,7 +41,11 @@ class Sample():
         self.lemma_in_q = info['lemma_in_q']
         self.lemma_in_c = info['lemma_in_c']
 
-
+def build_dict():
+    dct = defaultdict(lambda :len(dct))
+    dct['<NULL>'] = 0
+    dct['<UNK>'] = 1
+    return dct
 
 def set_seed(seed):
     torch.manual_seed(seed)
