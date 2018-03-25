@@ -82,8 +82,8 @@ def load_data(path, word_dict, pos_dict, ne_dict, relation_dict):
 
 def get_batches(data, batch_size):
     for i in range(len(data), batch_size):
-        batch = pad_batch(data[i:i + batch_size])
-        yield batch
+        data_dct = pad_batch(data[i:i + batch_size])
+        yield data_dct
 
 def pad_batch_by_sequence(batch_seq, dtype, output_type=Variable):
     batch_size = len(batch_seq)
@@ -151,6 +151,9 @@ def filter_embedding(embedding_path, word_dict, save_path):
 
     pass
 '''
+def get_acc(y, pred):
+    equal = y == (pred > 0.5)
+    return equal.sum()/len(equal)
 
 def get_i2w(w2i):
     return dict((v, k) for k, v in w2i.items())
