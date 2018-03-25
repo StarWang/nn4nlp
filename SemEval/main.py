@@ -3,7 +3,7 @@ import torch
 import random
 import numpy as np
 from trian import TriAN
-from data_utils import set_seed, load_data, build_dict, get_acc
+from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding
 from torch.optim import Adamax
 from torch.nn import BCELoss
 from torch.optim.lr_scheduler import MultiStepLR
@@ -37,18 +37,37 @@ if __name__ == '__main__':
 
     # train_model
     model = TriAN(config)
-    model.train()
     optimizer = Adamax(filter(lambda p: p.requires_grad, model.parameters()), lr=config['lr'], weight_decay=0)
-    loss_fn = BCELoss()
     lr_scheduler = MultiStepLR(optimizer, milestones=[10, 15], gamma=0.5)
+    loss_fn = BCELoss()
+
+    if config['use_cuda']:
+        model.cuda()
+    model.train()
+
+    # load embedding for word dictionary
+    word_dict = w2i_lst[0]
+    w2embed = load_embedding(word_dict, config['embedding_file'])
+    for w, embedding in w2embed.items():
+        model.embedding.weight.data[word_dict[w]].copy_(embedding)
+
+    # save original embedding matrix. reset the embeddings for all vectors after topk every batch
+    # this equals fine tuning topk embedding vectors every batch
+    # questionable. seems like topk words in vocab are ranked by frequency.
+    # why only fine tune vectors of stop words?
+    # impact on performance to be investigated
+    finetune_topk = config['finetune_topk']
+    fixed_embedding = model.embedding.weight.data[finetune_topk].clone()
 
     for epoch in range(config['epoch']):
         train_data = random.shuffle(train_data)
         train_acc = []
-        input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words',
-                'q_pos', 'q_mask', 'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
+        input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
+                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
         # training
         for batch_data in get_batches(train_data):
+            model.embedding.weight.data[finetune_topk:] = fixed_embedding
+
             optimizer.zero_grad()
             y = batch_data['label']
             pred = model(*[batch_data[x] for x in input_lst])

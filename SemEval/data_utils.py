@@ -3,9 +3,9 @@ import random
 import numpy as np
 import json
 import torch
+import unicodedata
 from torch.autograd import Variable
 from torch import LongTensor, FloatTensor, ByteTensor
-from unicodedata import normalize
 from collections import defaultdict
 
 class Sample():
@@ -19,9 +19,9 @@ class Sample():
         # text in the document, question and choice
         # normalize: characters are decomposed by canonical equivalence,
         # and multiple combining characters are arranged in a specific order
-        self.d_words = [word_dict[normalize('NFD', w)] for w in info['d_words']]
-        self.q_words = [word_dict[normalize('NFD', w)] for w in info['q_words']]
-        self.c_words = [word_dict[normalize('NFD', w)] for w in info['c_words']]
+        self.d_words = [word_dict[normalize(w)] for w in info['d_words']]
+        self.q_words = [word_dict[normalize(w)] for w in info['q_words']]
+        self.c_words = [word_dict[normalize(w)] for w in info['c_words']]
 
         # label, for test set, the label is always -1
         self.label = info['label']
@@ -57,7 +57,6 @@ class Sample():
                  tf
                 ]
 
-
 def build_dict(type):
     dct = defaultdict(lambda :len(dct))
     # NULL: used for padding
@@ -68,7 +67,7 @@ def build_dict(type):
     with open(file_path[type], 'r', encoding='utf-8') as f:
         for line in f:
             word = line.strip('\n')
-            dct[normalize('NFD', word)]
+            dct[normalize(word)]
     return dct
 
 def set_seed(seed):
@@ -157,3 +156,21 @@ def get_acc(y, pred):
 
 def get_i2w(w2i):
     return dict((v, k) for k, v in w2i.items())
+
+def normalize(x):
+    return unicodedata.normalize('NFD', x)
+
+def load_embedding(word_dict, embedding_file_path):
+    w2embed = defaultdict(list)
+    w2i = get_i2w(word_dict)
+    with open(embedding_file_path) as f:
+        for line in f:
+            line = line.strip('\n')
+            info = line.split(' ')
+            w = normalize(info[0])
+            if w in word_dict:
+                vec = [float(x) for x in info[1:]]
+                w2embed[w].append(vec)
+    for w, vec_lst in w2embed.items():
+        w2embed[w] = np.mean(vec_lst)
+    return w2embed
