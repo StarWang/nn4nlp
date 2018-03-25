@@ -19,7 +19,7 @@ class StackedBiLSTM(nn.Module):
                 lstm_input_size = 2 * hidden_size
             self.layers.append(nn.LSTM(lstm_input_size, hidden_size, 1, bidirectional=True, batch_first=True))
     
-    def forward(self, input_):
+    def forward(self, input_, mask):
         # input_: B x len x dim
         # output: B x len x 2*dim 
         for i in range(len(self.layers)):
@@ -60,7 +60,7 @@ class SequenceAttentionMM(nn.Module):
 
 class SequenceAttentionMV(nn.Module):
     def __init__(self, input_size, output_size, name = ''):
-        super(SequenceAttentionMM, self).__init__()
+        super(SequenceAttentionMV, self).__init__()
         self.W1 = nn.Linear(input_size, output_size) # input_size Dim2, output_size Dim1
         self.name = name # use the name field to debug
     
@@ -96,6 +96,7 @@ class SelfAttention(nn.Module):
 class AllEmbedding(nn.Module):
     def __init__(self, word_vocab_size, pos_vocab_size, ner_vocab_size, rel_vocab_size, \
             vocab_embedding_dim = 300, pos_embedding_dim = 12, ner_embedding_dim = 8, rel_embedding_dim = 10, dropout_prob = 0):
+        super(AllEmbedding, self).__init__()
         self.wordEmbedding = nn.Embedding(word_vocab_size, vocab_embedding_dim, padding_idx = 0)
         self.posEmbedding = nn.Embedding(pos_vocab_size, pos_embedding_dim, padding_idx = 0)
         self.nerEmbedding = nn.Embedding(ner_vocab_size, ner_embedding_dim, padding_idx = 0)

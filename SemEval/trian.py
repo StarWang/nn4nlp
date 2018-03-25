@@ -5,38 +5,39 @@ import torch.nn.functional as F
 from layers import StackedBiLSTM, SequenceAttentionMM, SequenceAttentionMV, SelfAttention, AllEmbedding
 from utils import vocab, pos_vocab, ner_vocab, rel_vocab
 
-class TriAN(nn.module):
+class TriAN(nn.Module):
     def __init__(self, args):
         super(TriAN, self).__init__()
         self.args = args
+        self.embedding_dim = 300
         # 0. Embedding layer
-        self.embeddings = AllEmbedding(len(vocab), len(pos_vocab), len(ner_vocab), len(rel_vocab), args.embedding_dim, args.pos_emb_dim, args.ner_emb_dim, args.rel_emb_dim, args.emb_dropout)
-        self.p_q_embedder = self.SequenceAttentionMM(self.args.embedding_dim, self.args.embedding_dim)
-        self.c_q_embedder = self.SequenceAttentionMM(self.args.embedding_dim, self.args.embedding_dim)
-        self.c_p_embedder = self.SequenceAttentionMM(self.args.embedding_dim, self.args.embedding_dim)
+        self.embeddings = AllEmbedding(len(vocab), len(pos_vocab), len(ner_vocab), len(rel_vocab), self.embedding_dim, args.pos_emb_dim, args.ner_emb_dim, args.rel_emb_dim, args.dropout_emb)
+        self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
+        self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
+        self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
 
         """
         passage = [p_embed, p_q_embed, p_pos_embed, p_ner_embed, p_q_rel_embed, p_c_rel_embed, f_tensor]
         question = [q_embed, q_pos_embed]
         choice = [c_embed, c_q_embed, c_p_embed]
         """
-        p_input_size = 2 * args.embedding_dim + args.pos_dim + args.ner_dim + 2 * args.rel_dim + 5
-        q_input_size = args.embedding_dim + args.pos_dim
-        c_input_size = 3 * args.embedding_dim
+        p_input_size = 2 * self.embedding_dim + args.pos_emb_dim + args.ner_emb_dim + 2 * args.rel_emb_dim + 5
+        q_input_size = self.embedding_dim + args.pos_emb_dim
+        c_input_size = 3 * self.embedding_dim
 
         # 1. RNN layers for passage, question, choice
-        self.p_rnn = StackedBRNN(p_input_size, args.hidden_size, args.p_layers, dropout_rate = 0, dropout_output = args.dropout_rnn_output,
-                           rnn_type = args.rnn_type, concat_layers = False, padding = args.rnn_padding)
-        self.q_rnn = StackedBRNN(q_input_size, args.hidden_size, args.q_layers, dropout_rate = 0, dropout_output = args.dropout_rnn_output,
-                           rnn_type = args.rnn_type, concat_layers = False, padding = args.rnn_padding)
-        self.c_rnn = StackedBRNN(c_input_size, args.hidden_size, args.c_layers, dropout_rate = 0, dropout_output = args.dropout_rnn_output,
-                           rnn_type = args.rnn_type, concat_layers = False, padding = args.rnn_padding)
+        self.p_rnn = StackedBiLSTM(p_input_size, args.hidden_size, args.doc_layers, dropout_prob = 0, padding = args.rnn_padding)
+        self.q_rnn = StackedBiLSTM(q_input_size, args.hidden_size, 1, dropout_prob = 0, padding = args.rnn_padding)
+        self.c_rnn = StackedBiLSTM(c_input_size, args.hidden_size, 1, dropout_prob = 0, padding = args.rnn_padding)
 
         # 2. Attention layers for question, passage-question, choice
-        self.q_qAttn = SelfAttention(q_rnn_out_size)
-        self.p_qAttn = SequenceAttentionMV(p_rnn_out_size, q_rnn_out_size)
-        self.c_cAttn = SelfAttention(c_rnn_out_size)
-
+        self.q_qAttn = SelfAttention(2 * args.hidden_size)
+        self.p_qAttn = SequenceAttentionMV(2 * args.hidden_size, 2 * args.hidden_size)
+        self.c_cAttn = SelfAttention(2 * args.hidden_size)
+        
+        p_attn_out_size = 2 * args.hidden_size
+        c_attn_out_size = 2 * args.hidden_size
+        q_attn_out_size = 2 * args.hidden_size
         # 3. Merge hiddens into final answer
         self.p_c_interact = nn.Linear(p_attn_out_size, c_attn_out_size)
         self.q_c_interact = nn.Linear(q_attn_out_size, c_attn_out_size)
