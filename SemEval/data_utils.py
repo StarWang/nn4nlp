@@ -10,6 +10,7 @@ from collections import defaultdict
 
 class Sample():
     # property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
+    # next step: preprocess the document, question and choice to be integers
     def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict):
         # concatenation of dataset id (trial/train/dev/test), document id,
         # question id and choice id
@@ -84,7 +85,7 @@ def get_batches(data, batch_size):
         batch = pad_batch(data[i:i + batch_size])
         yield batch
 
-def pad_batch_by_sequence(batch_seq, dtype):
+def pad_batch_by_sequence(batch_seq, dtype, output_type=Variable):
     batch_size = len(batch_seq)
     max_len = max([len(seq) for seq in batch_seq])
 
@@ -94,10 +95,16 @@ def pad_batch_by_sequence(batch_seq, dtype):
     for i, seq in enumerate(batch_seq):
         padded_batch[i, :len(seq)] = seq
         mask_batch[i, :len(seq)] = 0
-    return Variable(dtype(padded_batch)), Variable(ByteTensor(mask))
+    return output_type(dtype(padded_batch)), output_type(ByteTensor(mask))
 
-def pad_batch_by_sequence_list(batch_seq, dtypes):
-    f
+def pad_batch_by_sequence_list(batch_seq_lst, dtype):
+    batch_size =  len(batch_seq_lst)
+    max_len = max([len(batch_seq_lst[i][0]) for i in range(batch_size)])
+    feat_num = len(batch_seq_lst[0])
+    result = []
+    for i in range(len(batch_seq_lst[0])):
+        result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, lambda x:x)[0])
+    return dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len))
 
 def pad_batch(batch_data):
     # sample property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
@@ -114,8 +121,7 @@ def pad_batch(batch_data):
 
     d_ner, _ = pad_batch_by_sequence([s.d_ner for s in batch_data], LongTensor)
 
-    features_types = [ByteTensor]*4 + [FloatTensor]
-    features , _ = pad_batch_by_sequence_list([s.features for s in batch_data], features_types)
+    features , _ = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor)
 
     label = pad_batch_by_sequence([s.label for s in batch_data], FloatTensor)
 
