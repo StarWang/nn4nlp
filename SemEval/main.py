@@ -65,7 +65,7 @@ if __name__ == '__main__':
         input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
                 'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
         # training
-        for batch_data in get_batches(train_data):
+        for batch_data in get_batches(train_data, config['use_cuda']):
             model.embedding.weight.data[finetune_topk:] = fixed_embedding
 
             optimizer.zero_grad()
@@ -100,19 +100,4 @@ if __name__ == '__main__':
     with open('./data/test_output', 'w') as f:
         for prediction in test_prediction:
             f.write('{}\n'.format(int(prediction > 0.5)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

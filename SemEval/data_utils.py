@@ -84,7 +84,7 @@ def get_batches(data, batch_size):
         data_dct = pad_batch(data[i:i + batch_size])
         yield data_dct
 
-def pad_batch_by_sequence(batch_seq, dtype, output_type=Variable):
+def pad_batch_by_sequence(batch_seq, dtype, use_cuda, output_type=Variable):
     batch_size = len(batch_seq)
     max_len = max([len(seq) for seq in batch_seq])
 
@@ -94,35 +94,42 @@ def pad_batch_by_sequence(batch_seq, dtype, output_type=Variable):
     for i, seq in enumerate(batch_seq):
         padded_batch[i, :len(seq)] = seq
         mask_batch[i, :len(seq)] = 0
-    return output_type(dtype(padded_batch)), output_type(ByteTensor(mask))
+    if use_cuda:
+        return output_type(dtype(padded_batch).cuda()), output_type(ByteTensor(mask).cuda())
+    else:
+        return output_type(dtype(padded_batch)), output_type(ByteTensor(mask))
 
-def pad_batch_by_sequence_list(batch_seq_lst, dtype):
+
+def pad_batch_by_sequence_list(batch_seq_lst, dtype, use_cuda):
     batch_size =  len(batch_seq_lst)
     max_len = max([len(batch_seq_lst[i][0]) for i in range(batch_size)])
     feat_num = len(batch_seq_lst[0])
     result = []
     for i in range(len(batch_seq_lst[0])):
-        result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, lambda x:x)[0])
-    return dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len))
+        result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, use_cuda, lambda x:x)[0])
+    output = dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len))
+    if use_cuda:
+        return Variable(output.cuda())
+    return Variable(output)
 
-def pad_batch(batch_data):
+def pad_batch(batch_data, use_cuda):
     # sample property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
     # data to pad: word, pos, ne, relation, features
-    q_words, q_mask = pad_batch_by_sequence([s.q_words for s in batch_data], LongTensor)
-    d_words, d_mask = pad_batch_by_sequence([s.d_words for s in batch_data], LongTensor)
-    c_words, c_mask = pad_batch_by_sequence([s.c_words for s in batch_data], LongTensor)
+    q_words, q_mask = pad_batch_by_sequence([s.q_words for s in batch_data], LongTensor, use_cuda)
+    d_words, d_mask = pad_batch_by_sequence([s.d_words for s in batch_data], LongTensor, use_cuda)
+    c_words, c_mask = pad_batch_by_sequence([s.c_words for s in batch_data], LongTensor, use_cuda)
 
-    d_q_relation, _ = pad_batch_by_sequence([s.d_q_relation for s in batch_data], LongTensor)
-    d_c_relation, _ = pad_batch_by_sequence([s.d_c_relation for s in batch_data], LongTensor)
+    d_q_relation, _ = pad_batch_by_sequence([s.d_q_relation for s in batch_data], LongTensor, use_cuda)
+    d_c_relation, _ = pad_batch_by_sequence([s.d_c_relation for s in batch_data], LongTensor, use_cuda)
 
-    q_pos, _ = pad_batch_by_sequence([s.q_pos for s in batch_data], LongTensor)
-    d_pos, _ = pad_batch_by_sequence([s.d_pos for s in batch_data], LongTensor)
+    q_pos, _ = pad_batch_by_sequence([s.q_pos for s in batch_data], LongTensor, use_cuda)
+    d_pos, _ = pad_batch_by_sequence([s.d_pos for s in batch_data], LongTensor, use_cuda)
 
-    d_ner, _ = pad_batch_by_sequence([s.d_ner for s in batch_data], LongTensor)
+    d_ner, _ = pad_batch_by_sequence([s.d_ner for s in batch_data], LongTensor, use_cuda)
 
-    features , _ = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor)
+    features , _ = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor, use_cuda)
 
-    label = pad_batch_by_sequence([s.label for s in batch_data], FloatTensor)
+    label = pad_batch_by_sequence([s.label for s in batch_data], FloatTensor, use_cuda)
 
     return {
             'q_words':q_words,
@@ -138,18 +145,6 @@ def pad_batch(batch_data):
             'label':label
             }
 
-'''
-def filter_embedding(embedding_path, word_dict, save_path):
-    with open(embedding_path, 'r') as f:
-        for line in f:
-            line = line.strip('\n')
-            info = line.split(' ')
-            w = info[0]
-            if w in word_dict:
-            vec = [float(x) for x in info[1:]]
-
-    pass
-'''
 def get_acc(y, pred):
     equal = y == (pred > 0.5)
     return equal.sum()/len(equal)
@@ -163,7 +158,7 @@ def normalize(x):
 def load_embedding(word_dict, embedding_file_path):
     w2embed = defaultdict(list)
     w2i = get_i2w(word_dict)
-    with open(embedding_file_path) as f:
+    with open(embedding_file_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip('\n')
             info = line.split(' ')
