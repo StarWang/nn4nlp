@@ -79,9 +79,9 @@ def load_data(path, word_dict, pos_dict, ne_dict, relation_dict):
     with open(path, 'r', encoding='utf-8') as f:
         return [Sample(json.loads(sample.strip('\n')), word_dict, pos_dict, ne_dict, relation_dict) for sample in f]
 
-def get_batches(data, batch_size):
-    for i in range(len(data), batch_size):
-        data_dct = pad_batch(data[i:i + batch_size])
+def get_batches(data, batch_size, use_cuda):
+    for i in range(0, len(data), batch_size):
+        data_dct = pad_batch(data[i:i + batch_size], use_cuda)
         yield data_dct
 
 def pad_batch_by_sequence(batch_seq, dtype, use_cuda, output_type=Variable):
@@ -93,12 +93,11 @@ def pad_batch_by_sequence(batch_seq, dtype, use_cuda, output_type=Variable):
     padded_batch = np.zeros((batch_size, max_len))
     for i, seq in enumerate(batch_seq):
         padded_batch[i, :len(seq)] = seq
-        mask_batch[i, :len(seq)] = 0
+        mask[i, :len(seq)] = 0
     if use_cuda:
         return output_type(dtype(padded_batch).cuda()), output_type(ByteTensor(mask).cuda())
     else:
         return output_type(dtype(padded_batch)), output_type(ByteTensor(mask))
-
 
 def pad_batch_by_sequence_list(batch_seq_lst, dtype, use_cuda):
     batch_size =  len(batch_seq_lst)
@@ -127,21 +126,25 @@ def pad_batch(batch_data, use_cuda):
 
     d_ner, _ = pad_batch_by_sequence([s.d_ner for s in batch_data], LongTensor, use_cuda)
 
-    features , _ = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor, use_cuda)
+    features = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor, use_cuda)
 
-    label = pad_batch_by_sequence([s.label for s in batch_data], FloatTensor, use_cuda)
+    label = torch.FloatTensor([s.label for s in batch_data])
+    if use_cuda:
+        label = label.cuda()
 
     return {
             'q_words':q_words,
             'q_mask':q_mask,
             'd_words':d_words,
+            'c_words':c_words,
+            'c_mask':c_mask,
             'd_mask':d_mask,
             'd_q_relation':d_q_relation,
             'd_c_relation':d_c_relation,
             'q_pos':q_pos,
             'd_pos':d_pos,
             'd_ner':d_ner,
-            'featuers':features,
+            'features':features,
             'label':label
             }
 
@@ -167,5 +170,5 @@ def load_embedding(word_dict, embedding_file_path):
                 vec = [float(x) for x in info[1:]]
                 w2embed[w].append(vec)
     for w, vec_lst in w2embed.items():
-        w2embed[w] = np.mean(vec_lst)
+        w2embed[w] = np.mean(vec_lst, axis=0).astype('float32')
     return w2embed
