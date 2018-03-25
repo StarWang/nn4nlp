@@ -19,9 +19,9 @@ class Sample():
         # text in the document, question and choice
         # normalize: characters are decomposed by canonical equivalence,
         # and multiple combining characters are arranged in a specific order
-        self.d_words = [word_dict[normalize(w)] for w in info['d_words']]
-        self.q_words = [word_dict[normalize(w)] for w in info['q_words']]
-        self.c_words = [word_dict[normalize(w)] for w in info['c_words']]
+        self.d_words = [word_dict[normalize(w)] for w in info['d_words'].split(' ')]
+        self.q_words = [word_dict[normalize(w)] for w in info['q_words'].split(' ')]
+        self.c_words = [word_dict[normalize(w)] for w in info['c_words'].split(' ')]
 
         # label, for test set, the label is always -1
         self.label = info['label']
@@ -106,7 +106,7 @@ def pad_batch_by_sequence_list(batch_seq_lst, dtype, use_cuda):
     result = []
     for i in range(len(batch_seq_lst[0])):
         result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, use_cuda, lambda x:x)[0])
-    output = dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len))
+    output = dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len)).permute(0, 2, 1)
     if use_cuda:
         return Variable(output.cuda())
     return Variable(output)
@@ -128,9 +128,19 @@ def pad_batch(batch_data, use_cuda):
 
     features = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor, use_cuda)
 
+    # print('d_words:', d_words.size())
+    # print('q_words:', q_words.size())
+    # print('c_words:', c_words.size())
+    # print('d_pos:', d_pos.size())
+    # print('d_q_relation:', d_q_relation.size())
+    # print('d_c_relation:', d_c_relation.size())
+    # print('features:', features.size())
+    # print('q_pos:', q_pos.size())
+
     label = torch.FloatTensor([s.label for s in batch_data])
     if use_cuda:
         label = label.cuda()
+    label = Variable(label)
 
     return {
             'q_words':q_words,
@@ -171,4 +181,5 @@ def load_embedding(word_dict, embedding_file_path):
                 w2embed[w].append(vec)
     for w, vec_lst in w2embed.items():
         w2embed[w] = np.mean(vec_lst, axis=0).astype('float32')
+    print ('load embedding for {}/{} words'.format(len(w2embed), len(word_dict)))
     return w2embed

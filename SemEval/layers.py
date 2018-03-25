@@ -22,6 +22,7 @@ class StackedBiLSTM(nn.Module):
     def forward(self, input_, mask):
         # input_: B x len x dim
         # output: B x len x 2*dim 
+        lstm_output = input_
         for i in range(len(self.layers)):
             if self.dropout_prob > 0:
                 lstm_output = self.dropput(lstm_output)
@@ -48,9 +49,18 @@ class SequenceAttentionMM(nn.Module):
         # compute alpha_i
         u_ = self.activation(self.W1(u)) # u_: B x len1 x output_size
         v_ = self.activation(self.W1(v)) # v_: B x len2 x output_size
+        # print(self.name)
+        # print("u size:", u.size())
+        # print("v size:", v.size())
+        # print("u_ size:", u_.size())
+        # print("v_ size:", v_.size())
 
         alpha = u_.bmm(v_.permute(0, 2, 1)) # alpha: B x len1 x len2
-        alpha.data.masked_fill_(v_mask.data.expand(alpha.size()), -float('inf'))
+        v_mask = v_mask.unsqueeze(1) # v_mask: B x 1 x len2
+        # print("v_mask size:", v_mask.size())
+        # print("alpha size:", alpha.size())
+        # print()
+        alpha.data.masked_fill_(v_mask.expand(alpha.size()).data, -float('inf'))
         alpha = F.softmax(alpha, dim = 2)
 
         output = alpha.bmm(v)
@@ -72,6 +82,7 @@ class SequenceAttentionMV(nn.Module):
         v_ = self.W1(v) # v_: B x Dim1
 
         alpha = u.bmm(v_.unsqueeze(2)).permute(0, 2, 1) # alpha: B x 1 x len1
+        u_mask = u_mask.unsqueeze(1)
         alpha.data.masked_fill_(u_mask.data, -float('inf'))
         alpha = F.softmax(alpha, dim = 2)
 
@@ -87,15 +98,15 @@ class SelfAttention(nn.Module):
     # u: B x len x Dim
     # output: B x Dim
     def forward(self, u, u_mask):
-        u_ = self.W2(u)
+        u_ = self.W2(u).squeeze(2)
+        # print(u_mask.size(), u_.size())
         u_.data.masked_fill_(u_mask.data, -float('inf'))
-        alpha = F.softmax(u_.permute(0, 2, 1), dim = 2) # alpha: B x 1 x len
+        alpha = F.softmax(u_.unsqueeze(1), dim = 2) # alpha: B x 1 x len
 
         return alpha.bmm(u).squeeze(1)
 
 class AllEmbedding(nn.Module):
-    def __init__(self, word_vocab_size, pos_vocab_size, ner_vocab_size, rel_vocab_size, \
-            vocab_embedding_dim = 300, pos_embedding_dim = 12, ner_embedding_dim = 8, rel_embedding_dim = 10, dropout_prob = 0):
+    def __init__(self, word_vocab_size, pos_vocab_size, ner_vocab_size, rel_vocab_size, vocab_embedding_dim = 300, pos_embedding_dim = 12, ner_embedding_dim = 8, rel_embedding_dim = 10, dropout_prob = 0):
         super(AllEmbedding, self).__init__()
         self.wordEmbedding = nn.Embedding(word_vocab_size, vocab_embedding_dim, padding_idx = 0)
         self.posEmbedding = nn.Embedding(pos_vocab_size, pos_embedding_dim, padding_idx = 0)
@@ -116,8 +127,8 @@ class AllEmbedding(nn.Module):
     def forward(self, indices):
         p, q, c, pPos, pNer, qPos, pQRel, pCRel = indices
         pEmb, qEmb, cEmb = self.wordEmbedding(p), self.wordEmbedding(q), self.wordEmbedding(c)
-        pPosEmb, pNerEmb, qPosEmb = self.wordEmbedding(pPos), self.wordEmbedding(pNer), self.wordEmbedding(qPos)
-        pQRelEmb, pCRelEmb = self.wordEmbedding(pQRel), self.wordEmbedding(pCRel)
+        pPosEmb, pNerEmb, qPosEmb = self.posEmbedding(pPos), self.nerEmbedding(pNer), self.posEmbedding(qPos)
+        pQRelEmb, pCRelEmb = self.relEmbedding(pQRel), self.relEmbedding(pCRel)
 
         if self.dropout_prob > 0:
             pEmb, qEmb, cEmb = self.dropout(pEmb), self.dropout(qEmb), self.dropout(cEmb)

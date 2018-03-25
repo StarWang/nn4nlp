@@ -11,9 +11,9 @@ class TriAN(nn.Module):
         self.embedding_dim = 300
         # 0. Embedding layer
         self.embeddings = AllEmbedding(*vocab_size_lst, self.embedding_dim, args['pos_emb_dim'], args['ner_emb_dim'], args['rel_emb_dim'], args['dropout_emb'])
-        self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
-        self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
-        self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim)
+        self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="pq")
+        self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cq")
+        self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cp")
 
         """
         passage = [p_embed, p_q_embed, p_pos_embed, p_ner_embed, p_q_rel_embed, p_c_rel_embed, f_tensor]
@@ -45,9 +45,14 @@ class TriAN(nn.Module):
         p_emb, q_emb, c_emb, p_pos_emb, p_ner_emb, q_pos_emb, p_q_rel_emb, p_c_rel_emb = self.embeddings([p, q, c, p_pos, p_ner, q_pos, p_q_relation, p_c_relation])
         p_q_emb = self.p_q_embedder(p_emb, q_emb, q_mask)
         c_q_emb = self.c_q_embedder(c_emb, q_emb, q_mask)
-        c_p_emb = self.c_p_embedder(c_emb, p_emb, c_mask)
+        c_p_emb = self.c_p_embedder(c_emb, p_emb, p_mask)
 
-        p_rnn_in = torch.cat([p_emb, p_q_emb, p_pos_emb, p_ner_emb, f_tensor], dim = 2)
+        # print("p_emb", p_emb.size())
+        # print("p_q_emb", p_q_emb.size())
+        # print("p_pos_emb", p_pos_emb.size())
+        # print("p_ner_emb", p_ner_emb.size())
+        # print("f_tensor", f_tensor.size())
+        p_rnn_in = torch.cat([p_emb, p_q_emb, p_pos_emb, p_ner_emb, f_tensor, p_q_rel_emb, p_c_rel_emb], dim = 2)
         q_rnn_in = torch.cat([q_emb, q_pos_emb], dim = 2)
         c_rnn_in = torch.cat([c_emb, c_q_emb, c_p_emb], dim = 2)
 
@@ -55,9 +60,9 @@ class TriAN(nn.Module):
         q_rnn_out = self.q_rnn(q_rnn_in, q_mask)
         c_rnn_out = self.c_rnn(c_rnn_in, c_mask)
 
-        q_attn_out = self.q_qAttn(q_rnn_out)
-        p_attn_out = self.p_qAttn(p_rnn_out, q_attn_out)
-        c_attn_out = self.c_cAttn(c_rnn_out)
+        q_attn_out = self.q_qAttn(q_rnn_out, q_mask)
+        p_attn_out = self.p_qAttn(p_rnn_out, q_attn_out, p_mask)
+        c_attn_out = self.c_cAttn(c_rnn_out, c_mask)
 
         preactivation = (self.p_c_interact(p_attn_out) + self.q_c_interact(q_attn_out))*c_attn_out
         preactivation = torch.sum(preactivation, dim = -1)

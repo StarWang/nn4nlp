@@ -65,12 +65,24 @@ if __name__ == '__main__':
     finetune_topk = config['finetune_topk']
     fixed_embedding = model.embeddings.wordEmbedding.weight.data[finetune_topk:].clone()
 
+    input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
+                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
+
     print ('start training')
+    validation_acc = []
+    # get accuracy in validation data
+    for batch_data in get_batches(dev_data, config['batch_size'], config['use_cuda']):
+        y = batch_data['label']
+        pred = model(*[batch_data[x] for x in input_lst])
+        loss = loss_fn(pred, y)
+
+        validation_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
+    print ('epoch:', 0, 'validation accuracy:', np.array(validation_acc).mean())
+    
     for epoch in range(config['epoch']):
         random.shuffle(train_data)
         train_acc = []
-        input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
-                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
+        
         # training
         for batch_data in get_batches(train_data, config['batch_size'], config['use_cuda']):
             model.embeddings.wordEmbedding.weight.data[finetune_topk:] = fixed_embedding
@@ -82,10 +94,11 @@ if __name__ == '__main__':
             loss = loss_fn(pred, y)
             loss.backward()
             # clip grad norm to prevent gradient explosion
-            torch.nn.utils.clip_grad_norm(model.parameters(), config.grad_clipping)
+            torch.nn.utils.clip_grad_norm(model.parameters(), config['grad_clipping'])
             optimizer.step()
 
             train_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
+            print('{} th batches, loss: {}'.format(len(train_acc), loss.data[0]))
         lr_scheduler.step()
         print ('epoch:', epoch, 'training accuracy:', np.array(train_acc).mean())
 
