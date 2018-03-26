@@ -235,8 +235,6 @@ def predict(data, config, model, input_lst, error_analysis=False, evaluate=True)
         is_correct = prediction == y
         correct += is_correct
 
-        print (prediction, y)
-        print (df_by_group[['choice', 'id']])
         prediction_lst.append(df_by_group['full_id'].iloc[prediction])
 
         if error_analysis:
