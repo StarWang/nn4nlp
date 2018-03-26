@@ -1,6 +1,7 @@
 import torch
 import random
 import numpy as np
+import pandas as pd
 import json
 import torch
 import unicodedata
@@ -10,18 +11,21 @@ from collections import defaultdict
 
 class Sample():
     # property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
-    # next step: preprocess the document, question and choice to be integers
     def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict):
         # concatenation of dataset id (trial/train/dev/test), document id,
         # question id and choice id
         self.id = info['id']
 
-        # text in the document, question and choice
         # normalize: characters are decomposed by canonical equivalence,
         # and multiple combining characters are arranged in a specific order
         self.d_words = [word_dict[normalize(w)] for w in info['d_words'].split(' ')]
         self.q_words = [word_dict[normalize(w)] for w in info['q_words'].split(' ')]
         self.c_words = [word_dict[normalize(w)] for w in info['c_words'].split(' ')]
+
+        # text in the document, question and choice
+        self.d_text = info['d_words']
+        self.q_text = info['q_words']
+        self.c_text = info['c_words']
 
         # label, for test set, the label is always -1
         self.label = info['label']
@@ -128,6 +132,12 @@ def pad_batch(batch_data, use_cuda):
 
     features = pad_batch_by_sequence_list([s.features for s in batch_data], FloatTensor, use_cuda)
 
+    ids = [s.id for s in batch_data]
+
+    d_text = [s.d_text for s in batch_data]
+    c_text = [s.c_text for s in batch_data]
+    q_text = [s.q_text for s in batch_data]
+
     # print('d_words:', d_words.size())
     # print('q_words:', q_words.size())
     # print('c_words:', c_words.size())
@@ -145,9 +155,12 @@ def pad_batch(batch_data, use_cuda):
     return {
             'q_words':q_words,
             'q_mask':q_mask,
+            'q_text':q_text,
             'd_words':d_words,
+            'd_text':d_text,
             'c_words':c_words,
             'c_mask':c_mask,
+            'c_text':c_text,
             'd_mask':d_mask,
             'd_q_relation':d_q_relation,
             'd_c_relation':d_c_relation,
@@ -155,7 +168,8 @@ def pad_batch(batch_data, use_cuda):
             'd_pos':d_pos,
             'd_ner':d_ner,
             'features':features,
-            'label':label
+            'label':label,
+            'id':ids
             }
 
 def get_acc(y, pred):
@@ -183,3 +197,64 @@ def load_embedding(word_dict, embedding_file_path):
         w2embed[w] = np.mean(vec_lst, axis=0).astype('float32')
     print ('load embedding for {}/{} words'.format(len(w2embed), len(word_dict)))
     return w2embed
+
+
+def predict(data, config, model, input_lst, error_analysis=False, evaluate=True):
+    '''
+     since we already know one question has one answer, we need to select the choice with
+     the largest probability.
+    '''
+    pred_lst, y_lst = [], []
+    id_lst, full_id_lst = [], []
+    q_lst, d_lst, c_lst = [], [], []
+    for batch_data in get_batches(data, config['batch_size'], config['use_cuda']):
+        # id format: other_docid_qid_cid -> docid_qid
+        id_lst += ['_'.join(x.split('_')[:3]) for x in batch_data['id']]
+        full_id_lst += [x for x in batch_data['id']]
+        y = batch_data['label']
+        y_lst += y.data.cpu().numpy().tolist()
+        pred = model(*[batch_data[x] for x in input_lst])
+        pred_lst += pred.data.cpu().numpy().tolist()
+        q_lst += batch_data['q_text']
+        d_lst += batch_data['d_text']
+        c_lst += batch_data['c_text']
+
+    count, correct = 0, 0
+    df = pd.DataFrame(np.stack([pred_lst, y_lst, id_lst, q_lst, d_lst, c_lst, full_id_lst], axis=1),
+            columns=['pred', 'y', 'id', 'question', 'document', 'choice', 'full_id'])
+
+    prediction_lst = []
+    if error_analysis:
+        error_file = open('error_records', 'w')
+        correct_file = open('correct_records', 'w')
+
+    for id, df_by_group in df.groupby('id'):
+        count += 1
+        prediction = df_by_group['pred'].values.argmax()
+        y = df_by_group['y'].values.argmax()
+        is_correct = prediction == y
+        correct += is_correct
+
+        print (prediction, y)
+        print (df_by_group[['choice', 'id']])
+        prediction_lst.append(df_by_group['full_id'].iloc[prediction])
+
+        if error_analysis:
+            f = error_file if is_correct else correct_file
+            case_num = correct if is_correct else count - correct
+            f.write('case:{}\n'.format(case_num))
+            f.write('<document>\n{}\n'.format(df_by_group['document'].iloc[0]))
+            f.write('<question>\n{}\n'.format(df_by_group['question'].iloc[0]))
+            f.write('<choices>\n')
+            for i, choice in enumerate(df_by_group['choice']):
+                f.write('{}:{}\n'.format(i, choice))
+            f.write('pred:{}, truth:{}\n'.format(prediction, y))
+
+    if error_analysis:
+        error_file.close()
+        correct_file.close()
+
+    if evaluate:
+        print ('accuracy:{}/{}={}'.format(correct, count, correct/count))
+
+    return prediction_lst

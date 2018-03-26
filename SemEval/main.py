@@ -3,7 +3,7 @@ import torch
 import random
 import numpy as np
 from trian import TriAN
-from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding, get_batches
+from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding, get_batches, predict
 from torch.optim import Adamax
 from torch.nn import BCELoss
 from torch.optim.lr_scheduler import MultiStepLR
@@ -12,6 +12,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 if __name__ == '__main__':
     # load hyper parameters dictionary
     config = yaml.load(open('./config.yaml', 'r'))
+    config['use_cuda'] = config['use_cuda'] and torch.cuda.is_available()
 
     set_seed(config['seed'])
 
@@ -44,6 +45,8 @@ if __name__ == '__main__':
     model = TriAN(config, [len(dct) for dct in w2i_lst])
     optimizer = Adamax(filter(lambda p: p.requires_grad, model.parameters()), lr=config['lr'], weight_decay=0)
     lr_scheduler = MultiStepLR(optimizer, milestones=[10, 15], gamma=0.5)
+
+    # could try maximizing margin loss next time
     loss_fn = BCELoss()
 
     if config['use_cuda']:
@@ -77,7 +80,8 @@ if __name__ == '__main__':
         loss = loss_fn(pred, y)
 
         validation_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
-    print ('epoch:', 0, 'validation accuracy:', np.array(validation_acc).mean())
+    print ('epoch:', 0, 'validation accuracy binary:', np.array(validation_acc).mean())
+    predict(dev_data, config, model, input_lst)
 
     for epoch in range(config['epoch']):
         random.shuffle(train_data)
@@ -93,6 +97,7 @@ if __name__ == '__main__':
 
             loss = loss_fn(pred, y)
             loss.backward()
+
             # clip grad norm to prevent gradient explosion
             torch.nn.utils.clip_grad_norm(model.parameters(), config['grad_clipping'])
             optimizer.step()
@@ -100,7 +105,8 @@ if __name__ == '__main__':
             train_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
             print('{} th batches, loss: {}'.format(len(train_acc), loss.data[0]))
         lr_scheduler.step()
-        print ('epoch:', epoch, 'training accuracy:', np.array(train_acc).mean())
+        print ('epoch:', epoch, 'training accuracy binary:', np.array(train_acc).mean())
+        predict(train_data, config, model, input_lst)
 
         validation_acc = []
         # get accuracy in validation data
@@ -110,14 +116,13 @@ if __name__ == '__main__':
             loss = loss_fn(pred, y)
 
             validation_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
-        print ('epoch:', epoch, 'validation accuracy:', np.array(validation_acc).mean())
+        print ('epoch:', epoch, 'validation accuracy binary:', np.array(validation_acc).mean())
+        predict(dev_data, config, model, input_lst)
+
+    predict(dev_data, config, model, input_lst, error_analysis=True, evaluate=True)
 
     # save test prediction
-    test_prediction = []
-    for batch_data in get_batches(test_data, config['batch_size'], config['use_cuda']):
-        pred = model(*[batch_data[x] for x in input_lst])
-        test_prediction += list(pred.data.cpu().numpy())
     with open('./data/test_output', 'w') as f:
-        for prediction in test_prediction:
-            f.write('{}\n'.format(int(prediction > 0.5)))
+        for prediction in predict(test_data, config, model, input_lst, error_analysis=False, evaluate=False):
+            f.write('{}\n'.format(prediction))
 
