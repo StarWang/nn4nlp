@@ -25,6 +25,11 @@ if __name__ == '__main__':
     print ('loading training data')
     train_data = load_data('./data/train-data-processed.json', *w2i_lst)
     print ('train size:', len(train_data))
+    #print (np.array(train_data[-1].id))
+    #print (np.array(train_data[-1].d_pos))
+    #print (np.array(train_data[-1].q_pos))
+    #print (np.array(train_data[-1].d_ner))
+    #raise
 
     # load trial data
     print ('loading trial data')
@@ -71,6 +76,7 @@ if __name__ == '__main__':
     # impact on performance to be investigated
     finetune_topk = config['finetune_topk']
     fixed_embedding = model.embeddings.wordEmbedding.weight.data[finetune_topk:].clone()
+    np.save(r'C:\Users\WANG\Desktop\reimplementation\nn4nlp\SemEval\re_embed', model.embeddings.wordEmbedding.weight.data.numpy())
 
     input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
                 'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
@@ -110,6 +116,7 @@ if __name__ == '__main__':
             if len(train_acc) % 50 == 0:
                 print('{} th batches, loss: {}'.format(len(train_acc), loss.data[0]))
         lr_scheduler.step()
+        print ('lr:', lr_scheduler.get_lr()[0])
         print ('epoch:', epoch, 'training accuracy binary:', np.array(train_acc).mean())
         predict(train_data, config, model, input_lst)
 

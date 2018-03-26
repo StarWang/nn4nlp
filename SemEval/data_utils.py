@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from torch import LongTensor, FloatTensor, ByteTensor
 from collections import defaultdict
 
+
 class Sample():
     # property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
     def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict):
@@ -18,9 +19,9 @@ class Sample():
 
         # normalize: characters are decomposed by canonical equivalence,
         # and multiple combining characters are arranged in a specific order
-        self.d_words = [word_dict[normalize(w)] for w in info['d_words'].split(' ')]
-        self.q_words = [word_dict[normalize(w)] for w in info['q_words'].split(' ')]
-        self.c_words = [word_dict[normalize(w)] for w in info['c_words'].split(' ')]
+        self.d_words = [word_dict.get(normalize(w), 1) for w in info['d_words'].split(' ')]
+        self.q_words = [word_dict.get(normalize(w), 1) for w in info['q_words'].split(' ')]
+        self.c_words = [word_dict.get(normalize(w), 1) for w in info['c_words'].split(' ')]
 
         # text in the document, question and choice
         self.d_text = info['d_words']
@@ -36,15 +37,15 @@ class Sample():
         in_c = info['in_c']
 
         # named entity for each document word
-        self.d_ner = [ne_dict[w] for w in info['d_ner']]
+        self.d_ner = [ne_dict.get(w, 1) for w in info['d_ner']]
 
         # for each word in the document, whether its relation with each word in the question/choice indicated by ConceptNet
-        self.d_q_relation = [relation_dict[w] for w in info['p_q_relation']]
-        self.d_c_relation = [relation_dict[w] for w in info['p_c_relation']]
+        self.d_q_relation = [relation_dict.get(w, 1) for w in info['p_q_relation']]
+        self.d_c_relation = [relation_dict.get(w, 1) for w in info['p_c_relation']]
 
         # pos_tag of words in the passage/question
-        self.d_pos = [pos_dict[w] for w in info['d_pos']]
-        self.q_pos = [pos_dict[w] for w in info['q_pos']]
+        self.d_pos = [pos_dict.get(w, 1) for w in info['d_pos']]
+        self.q_pos = [pos_dict.get(w, 1) for w in info['q_pos']]
 
         # term frequency
         tf = info['tf']
