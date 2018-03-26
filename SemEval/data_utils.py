@@ -253,6 +253,6 @@ def predict(data, config, model, input_lst, error_analysis=False, evaluate=True)
         correct_file.close()
 
     if evaluate:
-        print ('accuracy:{}/{}={}'.format(correct, count, correct/count))
+        print ('max prob accuracy:{}/{}={}'.format(correct, count, correct/count))
 
     return prediction_lst
