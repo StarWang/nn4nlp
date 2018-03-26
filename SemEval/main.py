@@ -26,6 +26,9 @@ if __name__ == '__main__':
     train_data = load_data('./data/train-data-processed.json', *w2i_lst)
     print ('train size:', len(train_data))
     #print (np.array(train_data[-1].id))
+    #np.save(r'C:\Users\WANG\Desktop\reimplementation\nn4nlp\SemEval\re_data',
+            #np.array([np.array(s.c_words) for s in train_data]))
+    #raise
     #print (np.array(train_data[-1].d_pos))
     #print (np.array(train_data[-1].q_pos))
     #print (np.array(train_data[-1].d_ner))
@@ -94,7 +97,7 @@ if __name__ == '__main__':
     predict(dev_data, config, model, input_lst)
 
     for epoch in range(config['epoch']):
-        random.shuffle(train_data)
+        #random.shuffle(train_data)
         train_acc = []
 
         # training

@@ -153,6 +153,13 @@ def pad_batch(batch_data, use_cuda):
         label = label.cuda()
     label = Variable(label)
 
+    #print ([s.id for s in batch_data])
+    #print (d_words)
+    #print (d_mask)
+    #print (batch_data[-1].d_words)
+    #print (len(batch_data[-1].d_words))
+    #raise
+
     return {
             'q_words':q_words,
             'q_mask':q_mask,
