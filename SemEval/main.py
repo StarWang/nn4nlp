@@ -88,6 +88,7 @@ if __name__ == '__main__':
     predict(dev_data, config, model, input_lst)
 
     for epoch in range(config['epoch']):
+        model.train()
         random.shuffle(train_data)
         train_acc = []
 
@@ -115,6 +116,7 @@ if __name__ == '__main__':
 
         validation_acc = []
         # get accuracy in validation data
+        model.eval()
         for batch_data in get_batches(dev_data, config['batch_size'], config['use_cuda']):
             y = batch_data['label']
             pred = model(*[batch_data[x] for x in input_lst])

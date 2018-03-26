@@ -37,13 +37,9 @@ class StackedBiLSTM(nn.Module):
             lstm_output = self.layers[i](lstm_output)[0]
 
         output = lstm_output
-        return output
+        return output.contiguous()
     
     def _forward_padded(self,input_, mask):
-        """Slower (significantly), but more precise, encoding that handles
-        padding.
-        """
-        # Compute sorted sequence lengths
         lengths = mask.data.eq(0).long().sum(1).squeeze()
         _, idx_sort = torch.sort(lengths, dim=0, descending=True)
         _, idx_unsort = torch.sort(idx_sort, dim=0)
@@ -59,16 +55,16 @@ class StackedBiLSTM(nn.Module):
         input_ = nn.utils.rnn.pack_padded_sequence(input_, lengths, batch_first = True)
 
         # Encode all layers
-        lstm_output = input_
-        for i in range(self.num_layers):
+        for i in range(len(self.layers)):
+            lstm_input = lstm_output if i > 0 else input_
             if self.dropout_prob > 0:
-                lstm_output = self.dropput(lstm_output)
-            lstm_output = nn.utils.rnn.PackedSequence(lstm_output,
-                                                    input_.batch_sizes, batch_first = True)
-            lstm_output = self.rnns[i](rnn_input)[0]
+                lstm_input = self.dropput(lstm_input)
+            # lstm_input = nn.utils.rnn.PackedSequence(lstm_input,
+            #                                         input_.batch_sizes)
+            lstm_output = self.layers[i](lstm_input)[0]
 
-        lstm_output = nn.utils.rnn.pad_packed_sequence(o, batch_first = True)
-        output = lstm_output
+        output, _ = nn.utils.rnn.pad_packed_sequence(lstm_output, batch_first = True)
+        # output = lstm_output
 
         output = output.index_select(0, idx_unsort)
 
@@ -79,8 +75,8 @@ class StackedBiLSTM(nn.Module):
                                   output.size(2)).type(output.data.type())
             output = torch.cat([output, Variable(padding)], 1)
 
-        return output
-        
+        return output.contiguous()
+
 class SequenceAttentionMM(nn.Module):
     def __init__(self, input_size, output_size, dropout_prob = 0, name = ''):
         super(SequenceAttentionMM, self).__init__()
