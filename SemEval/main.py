@@ -24,10 +24,12 @@ if __name__ == '__main__':
     # load train data
     print ('loading training data')
     train_data = load_data('./data/train-data-processed.json', *w2i_lst)
+    print ('train size:', len(train_data))
 
     # load trial data
     print ('loading trial data')
     trial_data = load_data('./data/trial-data-processed.json', *w2i_lst)
+    print ('trial size:', len(trial_data))
 
     # concatenate train data and trial data
     train_data += trial_data
@@ -35,10 +37,12 @@ if __name__ == '__main__':
     # load dev data
     print ('loading validation data')
     dev_data = load_data('./data/dev-data-processed.json', *w2i_lst)
+    print ('validation size:', len(dev_data))
 
     # load test data
     print ('loading test data')
     test_data = load_data('./data/test-data-processed.json', *w2i_lst)
+    print ('test size:', len(test_data))
 
     # train_model
     print ('creating model')
@@ -103,7 +107,8 @@ if __name__ == '__main__':
             optimizer.step()
 
             train_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
-            print('{} th batches, loss: {}'.format(len(train_acc), loss.data[0]))
+            if len(train_acc) % 50 == 0:
+                print('{} th batches, loss: {}'.format(len(train_acc), loss.data[0]))
         lr_scheduler.step()
         print ('epoch:', epoch, 'training accuracy binary:', np.array(train_acc).mean())
         predict(train_data, config, model, input_lst)
