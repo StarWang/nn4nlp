@@ -11,7 +11,7 @@ class StackedBiLSTM(nn.Module):
         self.padding = padding
         self.dropout_prob = dropout_prob
         self.dropput = nn.Dropout(dropout_prob)
-        self.layers = []
+        self.layers = nn.ModuleList()
         for i in range(num_layers):
             if i == 0:
                 lstm_input_size = input_size
@@ -24,8 +24,8 @@ class StackedBiLSTM(nn.Module):
         # output: B x len x 2*dim 
         lstm_output = input_
         for i in range(len(self.layers)):
-            if self.dropout_prob > 0:
-                lstm_output = self.dropput(lstm_output)
+            #if self.dropout_prob > 0:
+                #lstm_output = self.dropput(lstm_output)
             lstm_output = self.layers[i](lstm_output)[0]
 
         output = lstm_output

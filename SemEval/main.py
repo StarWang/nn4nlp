@@ -78,11 +78,11 @@ if __name__ == '__main__':
 
         validation_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
     print ('epoch:', 0, 'validation accuracy:', np.array(validation_acc).mean())
-    
+
     for epoch in range(config['epoch']):
         random.shuffle(train_data)
         train_acc = []
-        
+
         # training
         for batch_data in get_batches(train_data, config['batch_size'], config['use_cuda']):
             model.embeddings.wordEmbedding.weight.data[finetune_topk:] = fixed_embedding

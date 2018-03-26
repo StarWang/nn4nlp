@@ -105,7 +105,7 @@ def pad_batch_by_sequence_list(batch_seq_lst, dtype, use_cuda):
     feat_num = len(batch_seq_lst[0])
     result = []
     for i in range(len(batch_seq_lst[0])):
-        result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, use_cuda, lambda x:x)[0])
+        result.append(pad_batch_by_sequence([batch_seq_lst[j][i] for j in range(batch_size)], dtype, False, lambda x:x)[0])
     output = dtype(torch.cat(result, dim=1).resize_(batch_size, feat_num, max_len)).permute(0, 2, 1)
     if use_cuda:
         return Variable(output.cuda())
