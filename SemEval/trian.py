@@ -25,9 +25,9 @@ class TriAN(nn.Module):
         c_input_size = 3 * self.embedding_dim
 
         # 1. RNN layers for passage, question, choice
-        self.p_rnn = StackedBiLSTM(p_input_size, args['hidden_size'], args['doc_layers'], dropout_prob = 0, padding = args['rnn_padding'])
-        self.q_rnn = StackedBiLSTM(q_input_size, args['hidden_size'], 1, dropout_prob = 0, padding = args['rnn_padding'])
-        self.c_rnn = StackedBiLSTM(c_input_size, args['hidden_size'], 1, dropout_prob = 0, padding = args['rnn_padding'])
+        self.p_rnn = StackedBiLSTM(p_input_size, args['hidden_size'], args['doc_layers'], dropout_prob = args['dropout_rnn_output'], padding = args['rnn_padding'])
+        self.q_rnn = StackedBiLSTM(q_input_size, args['hidden_size'], 1, dropout_prob = args['dropout_rnn_output'], padding = args['rnn_padding'])
+        self.c_rnn = StackedBiLSTM(c_input_size, args['hidden_size'], 1, dropout_prob = args['dropout_rnn_output'], padding = args['rnn_padding'])
 
         # 2. Attention layers for question, passage-question, choice
         self.q_qAttn = SelfAttention(2 * args['hidden_size'])
@@ -65,6 +65,7 @@ class TriAN(nn.Module):
         c_attn_out = self.c_cAttn(c_rnn_out, c_mask)
 
         preactivation = (self.p_c_interact(p_attn_out) + self.q_c_interact(q_attn_out))*c_attn_out
+
         preactivation = torch.sum(preactivation, dim = -1)
         return F.sigmoid(preactivation)
 
