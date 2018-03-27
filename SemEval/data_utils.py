@@ -263,4 +263,4 @@ def predict(data, config, model, input_lst, error_analysis=False, evaluate=True)
     if evaluate:
         print ('max prob accuracy:{}/{}={}'.format(correct, count, correct/count))
 
-    return prediction_lst
+    return prediction_lst, correct/count

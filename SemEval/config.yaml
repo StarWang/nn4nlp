@@ -19,5 +19,4 @@ ner_emb_dim: 8
 rel_emb_dim: 10
 seed: 1234
 test_mode: False
-
-
+ensemble_index: '1'

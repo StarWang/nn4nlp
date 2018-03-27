@@ -1,6 +1,7 @@
 import yaml
 import torch
 import random
+import copy
 import numpy as np
 from trian import TriAN
 from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding, get_batches, predict
@@ -8,6 +9,16 @@ from torch.optim import Adamax
 from torch.nn import BCELoss
 from torch.optim.lr_scheduler import MultiStepLR
 
+def saveModel(model, path):
+    state_dict = copy.copy(model.state_dict())
+    params = {'state_dict': state_dict}
+    torch.save(params, path)
+
+def loadModel(model, path):
+    saved_params = torch.load(path, map_location=lambda storage, loc: storage)
+    state_dict = saved_params['state_dict']
+    model.load_state_dict(state_dict)
+    return model
 
 if __name__ == '__main__':
     # load hyper parameters dictionary
@@ -96,6 +107,7 @@ if __name__ == '__main__':
     print ('epoch:', 0, 'validation accuracy binary:', np.array(validation_acc).mean())
     predict(dev_data, config, model, input_lst)
 
+    bestAccy = -1
     for epoch in range(config['epoch']):
         model.train()
         random.shuffle(train_data)
@@ -134,13 +146,17 @@ if __name__ == '__main__':
 
             validation_acc.append(get_acc(y.data.cpu().numpy(), pred.data.cpu().numpy()))
         print ('epoch:', epoch, 'validation accuracy binary:', np.array(validation_acc).mean())
-        predict(dev_data, config, model, input_lst)
+        _, accy = predict(dev_data, config, model, input_lst)
+        if(accy > bestAccy):
+            saveModel(model, 'data/best_model')
+            accy = bestAccy
 
     predict(dev_data, config, model, input_lst, error_analysis=True, evaluate=True)
 
     # save test prediction
-    with open('./data/answer.txt', 'w') as f:
-        predictions = predict(test_data, config, model, input_lst, error_analysis=False, evaluate=True)
+    with open('./data/answer' + config['ensemble_index'] + '.txt', 'w') as f:
+        model = loadModel(model, 'data/best_model')
+        predictions, _ = predict(test_data, config, model, input_lst, error_analysis=False, evaluate=True)
         predictions = sorted(predictions)
         for prediction in predictions:
             f.write(','.join(prediction) + '\n')

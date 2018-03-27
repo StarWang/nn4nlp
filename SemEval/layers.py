@@ -40,6 +40,8 @@ class StackedBiLSTM(nn.Module):
         return output.contiguous()
     
     def _forward_padded(self,input_, mask):
+        # input_: B x len x dim
+        # output: B x len x 2*dim 
         lengths = mask.data.eq(0).long().sum(1).squeeze()
         _, idx_sort = torch.sort(lengths, dim=0, descending=True)
         _, idx_unsort = torch.sort(idx_sort, dim=0)
@@ -48,10 +50,7 @@ class StackedBiLSTM(nn.Module):
         idx_sort = Variable(idx_sort)
         idx_unsort = Variable(idx_unsort)
 
-        # Sort x
         input_ = input_.index_select(0, idx_sort)
-
-        # Pack it up
         input_ = nn.utils.rnn.pack_padded_sequence(input_, lengths, batch_first = True)
 
         # Encode all layers
@@ -59,16 +58,12 @@ class StackedBiLSTM(nn.Module):
             lstm_input = lstm_output if i > 0 else input_
             if self.dropout_prob > 0:
                 lstm_input = self.dropput(lstm_input)
-            # lstm_input = nn.utils.rnn.PackedSequence(lstm_input,
-            #                                         input_.batch_sizes)
             lstm_output = self.layers[i](lstm_input)[0]
 
         output, _ = nn.utils.rnn.pad_packed_sequence(lstm_output, batch_first = True)
-        # output = lstm_output
 
         output = output.index_select(0, idx_unsort)
 
-        # Pad up to original batch sequence length
         if output.size(1) != mask.size(1):
             padding = torch.zeros(output.size(0),
                                   mask.size(1) - output.size(1),
