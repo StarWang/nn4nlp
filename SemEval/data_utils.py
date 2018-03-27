@@ -243,10 +243,10 @@ def predict(data, config, model, input_lst, error_analysis=False, evaluate=True)
         is_correct = prediction == y
         correct += is_correct
 
-        prediction_lst.append(df_by_group['full_id'].iloc[prediction])
+        prediction_lst.append(df_by_group['full_id'].iloc[prediction].split('_')[1:])
 
         if error_analysis:
-            f = error_file if is_correct else correct_file
+            f = correct_file if is_correct else error_file
             case_num = correct if is_correct else count - correct
             f.write('case:{}\n'.format(case_num))
             f.write('<document>\n{}\n'.format(df_by_group['document'].iloc[0]))

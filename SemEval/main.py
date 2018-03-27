@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # impact on performance to be investigated
     finetune_topk = config['finetune_topk']
     fixed_embedding = model.embeddings.wordEmbedding.weight.data[finetune_topk:].clone()
-    np.save(r'C:\Users\WANG\Desktop\reimplementation\nn4nlp\SemEval\re_embed', model.embeddings.wordEmbedding.weight.data.numpy())
+    # np.save(r'C:\Users\WANG\Desktop\reimplementation\nn4nlp\SemEval\re_embed', model.embeddings.wordEmbedding.weight.data.numpy())
 
     input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
                 'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
@@ -139,7 +139,9 @@ if __name__ == '__main__':
     predict(dev_data, config, model, input_lst, error_analysis=True, evaluate=True)
 
     # save test prediction
-    with open('./data/test_output', 'w') as f:
-        for prediction in predict(test_data, config, model, input_lst, error_analysis=False, evaluate=False):
-            f.write('{}\n'.format(prediction))
+    with open('./data/answer.txt', 'w') as f:
+        predictions = predict(test_data, config, model, input_lst, error_analysis=False, evaluate=True)
+        predictions = sorted(predictions)
+        for prediction in predictions:
+            f.write(','.join(prediction) + '\n')
 
