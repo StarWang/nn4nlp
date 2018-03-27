@@ -64,7 +64,7 @@ class TriAN(nn.Module):
         p_attn_out = self.p_qAttn(p_rnn_out, q_attn_out, p_mask)
         c_attn_out = self.c_cAttn(c_rnn_out, c_mask)
 
-        preactivation = (self.p_c_interact(p_attn_out) + self.q_c_interact(q_attn_out))*c_attn_out
-        preactivation = torch.sum(preactivation, dim = -1)
+        preactivation = torch.sum(self.p_c_interact(p_attn_out)*c_attn_out, dim = -1)
+        preactivation += torch.sum(self.q_c_interact(q_attn_out) * attn_out, dim = -1)
         return F.sigmoid(preactivation)
 
