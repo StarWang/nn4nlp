@@ -11,9 +11,9 @@ class TriAN(nn.Module):
         self.embedding_dim = 300
         # 0. Embedding layer
         self.embeddings = AllEmbedding(*vocab_size_lst, self.embedding_dim, args['pos_emb_dim'], args['ner_emb_dim'], args['rel_emb_dim'], args['dropout_emb'])
-        self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="pq")
-        self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cq")
-        self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cp")
+        self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="pq", dropout_prob = args['dropout_emb'])
+        self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cq", dropout_prob = args['dropout_emb'])
+        self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cp", dropout_prob = args['dropout_emb'])
 
         """
         passage = [p_embed, p_q_embed, p_pos_embed, p_ner_embed, p_q_rel_embed, p_c_rel_embed, f_tensor]

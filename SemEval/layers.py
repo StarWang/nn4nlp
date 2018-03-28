@@ -10,15 +10,15 @@ class StackedBiLSTM(nn.Module):
 		super(StackedBiLSTM, self).__init__()
 		self.padding = padding
 		self.dropout_prob = dropout_prob
-		self.dropout = nn.Dropout(dropout_prob)
+		self.dropouts = nn.ModuleList()
 		self.layers = nn.ModuleList()
 		for i in range(num_layers):
 			if i == 0:
 				lstm_input_size = input_size
 			else:
 				lstm_input_size = 2 * hidden_size
-			self.layers.append(nn.LSTM(lstm_input_size, hidden_size, 1, bidirectional=True, batch_first=True))
-	
+			self.layers.append(nn.LSTM(lstm_input_size, hidden_size, 1, bidirectional=True, batch_first=True)); self.dropouts.append( nn.Dropout(dropout_prob))
+    	
 	def forward(self, input_, mask):
 		# input_: B x len x dim
 		# output: B x len x 2*dim
@@ -34,7 +34,7 @@ class StackedBiLSTM(nn.Module):
 		lstm_output = input_
 		for i in range(len(self.layers)):
 			if self.dropout_prob > 0:
-				lstm_output = self.dropout(lstm_output);
+				lstm_output = self.dropouts[i](lstm_output);
 			lstm_output = self.layers[i](lstm_output)[0]
 
 		output = lstm_output
@@ -58,7 +58,7 @@ class StackedBiLSTM(nn.Module):
 		for i in range(len(self.layers)):
 			lstm_input = lstm_output if i > 0 else input_
 			if self.dropout_prob > 0:
-				lstm_input_1 = self.dropout(lstm_input.data)
+				lstm_input_1 = self.dropouts[i](lstm_input.data)
 				lstm_input = nn.utils.rnn.PackedSequence(lstm_input_1, lstm_input.batch_sizes)
 				# lstm_input = nn.utils.rnn.PackedSequence(lstm_input_1, lstm_input.batch_sizes, batch_first = True)
 			# lstm_input = F.dropout(lstm_input.data,
@@ -84,7 +84,7 @@ class SequenceAttentionMM(nn.Module):
 	def __init__(self, input_size, output_size, dropout_prob = 0, name = ''):
 		super(SequenceAttentionMM, self).__init__()
 		self.W1 = nn.Linear(input_size, output_size)
-		self.activation = nn.ReLU()
+		self.activation = F.relu
 		self.name = name # use the name field to debug
 		self.dropout_prob = dropout_prob
 		self.dropout = nn.Dropout(p=dropout_prob)
@@ -165,8 +165,10 @@ class AllEmbedding(nn.Module):
 		self.nerEmbedding.weight.data.normal_(0, 0.1)
 		self.relEmbedding.weight.data.normal_(0, 0.1)
 		self.dropout_prob = dropout_prob
-		self.dropout = nn.Dropout(self.dropout_prob)
-	
+		self.dropouts = nn.ModuleList()
+		for i in range(9): 
+			self.dropouts.append(nn.Dropout(self.dropout_prob))
+
 	def loadGloveEmbedding(self, wordIdxWeight):
 		for wordIdx, weight in wordIdxWeight.items():
 			self.wordEmbedding.weight.data[wordIdx].copy_(pretrained)
@@ -178,8 +180,8 @@ class AllEmbedding(nn.Module):
 		pQRelEmb, pCRelEmb = self.relEmbedding(pQRel), self.relEmbedding(pCRel)
 
 		if self.dropout_prob > 0:
-			pEmb, qEmb, cEmb = self.dropout(pEmb), self.dropout(qEmb), self.dropout(cEmb)
-			pPosEmb, pNerEmb, qPosEmb = self.dropout(pPosEmb), self.dropout(pNerEmb), self.dropout(qPosEmb)
-			pQRelEmb, pCRelEmb = self.dropout(pQRelEmb), self.dropout(pCRelEmb)
+			pEmb, qEmb, cEmb = self.dropouts[0](pEmb), self.dropouts[1](qEmb), self.dropouts[2](cEmb)
+			pPosEmb, pNerEmb, qPosEmb = self.dropouts[3](pPosEmb), self.dropouts[4](pNerEmb), self.dropouts[5](qPosEmb)
+			pQRelEmb, pCRelEmb = self.dropouts[6](pQRelEmb), self.dropouts[7](pCRelEmb)
 
 		return pEmb, qEmb, cEmb, pPosEmb, pNerEmb, qPosEmb, pQRelEmb, pCRelEmb
