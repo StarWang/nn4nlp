@@ -1,6 +1,9 @@
 import yaml
 import torch
 import random
+import sys
+sys.path.extend("./")
+sys.path.extend("./../")
 import copy
 import numpy as np
 from trian import TriAN
@@ -108,6 +111,9 @@ if __name__ == '__main__':
     predict(dev_data, config, model, input_lst)
 
     bestAccy = -1
+    if config['pretrained'] is not None:
+        model = loadModel(model, config['pretrained'])
+
     for epoch in range(config['epoch']):
         model.train()
         random.shuffle(train_data)
@@ -150,7 +156,7 @@ if __name__ == '__main__':
         if(accy > bestAccy):
             saveModel(model, 'data/best_model')
             accy = bestAccy
-
+        saveModel(model, 'checkpoint/model_%d'%epoch)
     predict(dev_data, config, model, input_lst, error_analysis=True, evaluate=True)
 
     # save test prediction
