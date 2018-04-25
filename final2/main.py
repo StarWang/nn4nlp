@@ -6,7 +6,7 @@ sys.path.extend("./")
 sys.path.extend("./../")
 import copy
 import numpy as np
-from layers import DMNPlus
+from trian import TriAN
 from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding, get_batches, predict
 from torch.optim import Adamax
 from torch.nn import BCELoss
@@ -31,22 +31,22 @@ if __name__ == '__main__':
 
     set_seed(config['seed'])
 
+    # get word2ind dictionary, order: word, pos, ne, relation
+    w2i_lst = []
+    for t in ['word', 'pos', 'ne', 'relation']:
+        w2i_lst.append(build_dict(t))
+
     scriptKnowledge, _ = getTitle()
     trainScriptKnowledge = readScriptKnowledge('data/train_script.txt', scriptKnowledge)
     trialScriptKnowledge = readScriptKnowledge('data/trial_script.txt', scriptKnowledge)
     devScriptKnowledge = readScriptKnowledge('data/dev_script.txt', scriptKnowledge)
     testScriptKnowledge = readScriptKnowledge('data/test_script.txt', scriptKnowledge)
 
-    # get word2ind dictionary, order: word, pos, ne, relation
-    w2i_lst = []
-    for t in ['word', 'pos', 'ne', 'relation']:
-        w2i_lst.append(build_dict(t))
-
     # load train data
     print ('loading training data')
     train_data = load_data('./data/train-data-processed.json', *w2i_lst, trainScriptKnowledge)
     print ('train size:', len(train_data))
-
+    
     # load trial data
     print ('loading trial data')
     trial_data = load_data('./data/trial-data-processed.json', *w2i_lst, trialScriptKnowledge)
@@ -67,9 +67,9 @@ if __name__ == '__main__':
 
     # train_model
     print ('creating model')
-    model = DMNPlus(config['hidden_size'], len(w2i_lst[0]))
+    model = TriAN(config, [len(dct) for dct in w2i_lst])
     optimizer = Adamax(filter(lambda p: p.requires_grad, model.parameters()), lr=config['lr'], weight_decay=0)
-    lr_scheduler = MultiStepLR(optimizer, milestones=[10, 15], gamma=0.5)
+    lr_scheduler = MultiStepLR(optimizer, milestones=[3, 6, 10, 13], gamma=0.5)
 
     # could try maximizing margin loss next time
     loss_fn = BCELoss()
@@ -83,16 +83,18 @@ if __name__ == '__main__':
     word_dict = w2i_lst[0]
     w2embed = load_embedding(word_dict, config['embedding_file'])
     for w, embedding in w2embed.items():
-        model.word_embedding.weight.data[word_dict[w]].copy_(torch.from_numpy(embedding.astype('float32')))
+        model.embeddings.wordEmbedding.weight.data[word_dict[w]].copy_(torch.from_numpy(embedding.astype('float32')))
 
     # save original embedding matrix. reset the embeddings for all vectors after topk every batch
+    # this equals fine tuning topk embedding vectors every batch
+    # questionable. seems like topk words in vocab are ranked by frequency.
+    # why only fine tune vectors of stop words?
+    # impact on performance to be investigated
     finetune_topk = config['finetune_topk']
-    fixed_embedding = model.word_embedding.weight.data[finetune_topk:].clone()
+    fixed_embedding = model.embeddings.wordEmbedding.weight.data[finetune_topk:].clone()
 
-    # input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
-    #             'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation']
-                
-    input_lst = ['d_words_sentences', 'q_words', 'c_words']
+    input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
+                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation', 'd_words_sentences']
 
     print ('start training')
     validation_acc = []
@@ -117,7 +119,7 @@ if __name__ == '__main__':
 
         # training
         for batch_data in get_batches(train_data, config['batch_size'], config['use_cuda']):
-            model.word_embedding.weight.data[finetune_topk:] = fixed_embedding
+            model.embeddings.wordEmbedding.weight.data[finetune_topk:] = fixed_embedding
 
             optimizer.zero_grad()
             y = batch_data['label']
@@ -136,7 +138,7 @@ if __name__ == '__main__':
         lr_scheduler.step()
         print ('lr:', lr_scheduler.get_lr()[0])
         print ('epoch:', epoch, 'training accuracy binary:', np.array(train_acc).mean())
-        predict(train_data, config, model, input_lst)
+        # predict(train_data, config, model, input_lst)
 
         validation_acc = []
         # get accuracy in validation data

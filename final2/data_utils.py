@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from torch import LongTensor, FloatTensor, ByteTensor
 from collections import defaultdict
 import re
+import copy
 
 class Sample():
     # property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
@@ -23,16 +24,21 @@ class Sample():
         self.d_words = [word_dict.get(normalize(w), 1) for w in info['d_words'].split(' ')]
         self.q_words = [word_dict.get(normalize(w), 1) for w in info['q_words'].split(' ')]
         self.c_words = [word_dict.get(normalize(w), 1) for w in info['c_words'].split(' ')]
+        self.script_knowledge_passage = []
 
-        self.d_words_sentences = []
+        for sequence in script_knowledge[self.passage_id]:
+            result = []
+            for s in sequence:
+                s = [word_dict.get(normalize(w), 1) for w in s.split(' ')]
+                result.append(s)
+            
+            self.script_knowledge_passage.append(result)
+
+        self._d_words_sentences = []
         passge_sentences = re.split(',|\.', info['d_words'])
         for s in passge_sentences:
             s = [word_dict.get(normalize(w), 1) for w in s.split(' ')]
-            self.d_words_sentences.append(s)   
-        
-        for s in script_knowledge[self.passage_id]:
-            s = [word_dict.get(normalize(w), 1) for w in s.split(' ')]
-            self.d_words_sentences.append(s)      
+            self._d_words_sentences.append(s)
 
         # text in the document, question and choice
         self.d_text = info['d_words']
@@ -72,6 +78,17 @@ class Sample():
                  lemma_in_q, lemma_in_c,
                  tf
                 ]
+    
+    @property
+    def d_words_sentences(self):
+        if len(self.script_knowledge_passage) == 0:
+            return self._d_words_sentences
+
+        result = copy.deepcopy(self._d_words_sentences)
+        index = random.randint(0, len(self.script_knowledge_passage)-1)
+        result += self.script_knowledge_passage[index]
+        
+        return result
 
 def build_dict(type):
     dct = defaultdict(lambda :len(dct))
@@ -146,7 +163,6 @@ def pad_sentence_data(batch_seq, dtype, use_cuda, output_type=Variable):
     else:
         return output_type(dtype(padded_batch))
     
-
 def pad_batch(batch_data, use_cuda):
     # sample property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
     # data to pad: word, pos, ne, relation, features

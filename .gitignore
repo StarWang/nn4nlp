@@ -1,5 +1,7 @@
 *.json
 *.pyc
+*.log
 
 SemEval/data/
 final/data/
+final2/data/
