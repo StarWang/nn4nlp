@@ -168,7 +168,7 @@ class AllEmbedding(nn.Module):
         self.posEmbedding = nn.Embedding(pos_vocab_size, pos_embedding_dim, padding_idx=0)
         self.nerEmbedding = nn.Embedding(ner_vocab_size, ner_embedding_dim, padding_idx=0)
         self.relEmbedding = nn.Embedding(rel_vocab_size, rel_embedding_dim, padding_idx=0)
-        self.charEmbedding = CharEmbed(char_vocab_size, embed_dim=char_embedding_dim)
+        self.charEmbedding = CharEmbed(char_vocab_size, output_dim=char_embedding_dim)
         self.wordEmbedding.weight.data.fill_(0)
         self.wordEmbedding.weight.data[:2].normal_(0, 0.1)  # only initialze the first two indices
         self.posEmbedding.weight.data.normal_(0, 0.1)
