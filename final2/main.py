@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # get word2ind dictionary, order: word, pos, ne, relation
     w2i_lst = []
-    for t in ['word', 'pos', 'ne', 'relation']:
+    for t in ['word', 'pos', 'ne', 'relation', 'char']:
         w2i_lst.append(build_dict(t))
 
     scriptKnowledge, _ = getTitle()
@@ -94,7 +94,8 @@ if __name__ == '__main__':
     fixed_embedding = model.embeddings.wordEmbedding.weight.data[finetune_topk:].clone()
 
     input_lst = ['d_words', 'd_pos', 'd_ner', 'd_mask', 'q_words', 'q_pos', 'q_mask',
-                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation', 'd_words_sentences']
+                'c_words', 'c_mask', 'features', 'd_q_relation', 'd_c_relation', 'd_words_sentences',
+                 'd_chars', 'q_chars', 'c_chars']
 
     print ('start training')
     validation_acc = []

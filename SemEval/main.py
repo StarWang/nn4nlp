@@ -30,23 +30,15 @@ if __name__ == '__main__':
 
     set_seed(config['seed'])
 
-    # get word2ind dictionary, order: word, pos, ne, relation
+    # get word2ind dictionary, order: word, pos, ne, relation, character
     w2i_lst = []
-    for t in ['word', 'pos', 'ne', 'relation']:
+    for t in ['word', 'pos', 'ne', 'relation', 'char']:
         w2i_lst.append(build_dict(t))
 
     # load train data
     print ('loading training data')
     train_data = load_data('./data/train-data-processed.json', *w2i_lst)
     print ('train size:', len(train_data))
-    #print (np.array(train_data[-1].id))
-    #np.save(r'C:\Users\WANG\Desktop\reimplementation\nn4nlp\SemEval\re_data',
-            #np.array([np.array(s.c_words) for s in train_data]))
-    #raise
-    #print (np.array(train_data[-1].d_pos))
-    #print (np.array(train_data[-1].q_pos))
-    #print (np.array(train_data[-1].d_ner))
-    #raise
 
     # load trial data
     print ('loading trial data')

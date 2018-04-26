@@ -13,7 +13,7 @@ import copy
 
 class Sample():
     # property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
-    def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict, script_knowledge):
+    def __init__(self, info, word_dict, pos_dict, ne_dict, relation_dict, char_dict, script_knowledge):
         # concatenation of dataset id (trial/train/dev/test), document id,
         # question id and choice id
         self.id = info['id']
@@ -25,6 +25,10 @@ class Sample():
         self.q_words = [word_dict.get(normalize(w), 1) for w in info['q_words'].split(' ')]
         self.c_words = [word_dict.get(normalize(w), 1) for w in info['c_words'].split(' ')]
         self.script_knowledge_passage = []
+
+        self.d_chars = get_chars_ind_lst(char_dict, info['d_words'].split(' '))
+        self.q_chars = get_chars_ind_lst(char_dict, info['q_words'].split(' '))
+        self.c_chars = get_chars_ind_lst(char_dict, info['c_words'].split(' '))
 
         for sequence in script_knowledge[self.passage_id]:
             result = []
@@ -90,13 +94,22 @@ class Sample():
         
         return result
 
+
+def get_chars_ind_lst(char_dict, word_lst):
+    chars = []
+    for w in word_lst:
+        chars.append([char_dict.get(normalize(c), 1) for c in w])
+    return chars
+
+
 def build_dict(type):
     dct = defaultdict(lambda :len(dct))
     # NULL: used for padding
     dct['<NULL>'] = 0
     # UNK: unknown word
     dct['<UNK>'] = 1
-    file_path = {'word':'./data/vocab', 'pos':'./data/pos_vocab', 'ne': './data/ner_vocab', 'relation':'./data/rel_vocab'}
+    file_path = {'word':'./data/vocab', 'pos':'./data/pos_vocab', 'ne': './data/ner_vocab',
+                 'relation':'./data/rel_vocab', 'char':'./data/char_vocab'}
     with open(file_path[type], 'r', encoding='utf-8') as f:
         for line in f:
             word = line.strip('\n')
@@ -108,9 +121,9 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-def load_data(path, word_dict, pos_dict, ne_dict, relation_dict, script_knowledge):
+def load_data(path, word_dict, pos_dict, ne_dict, relation_dict, char_dict, script_knowledge):
     with open(path, 'r', encoding='utf-8') as f:
-        return [Sample(json.loads(sample.strip('\n')), word_dict, pos_dict, ne_dict, relation_dict, script_knowledge) for sample in f]
+        return [Sample(json.loads(sample.strip('\n')), word_dict, pos_dict, ne_dict, relation_dict, char_dict, script_knowledge) for sample in f]
 
 def get_batches(data, batch_size, use_cuda):
     for i in range(0, len(data), batch_size):
@@ -162,13 +175,35 @@ def pad_sentence_data(batch_seq, dtype, use_cuda, output_type=Variable):
         return output_type(dtype(padded_batch).cuda())
     else:
         return output_type(dtype(padded_batch))
-    
+
+
+# input format: [[w1c1, w1c2, ...], [w2c1, w2c2, ...], ...]
+def pad_batch_by_char_seq(sent_word_char_lst, use_cuda):
+    batch_size = len(sent_word_char_lst)
+    max_sent_len = max([len(sent) for sent in sent_word_char_lst])
+    max_word_len = max([len(word) for sent in sent_word_char_lst for word in sent])
+    padded_lst = np.zeros((max_sent_len, batch_size, max_word_len))
+    for i, sent in enumerate(sent_word_char_lst):
+        for w_idx, w in enumerate(sent):
+            padded_lst[w_idx, i, :] = w
+    result = []
+    for data in padded_lst:
+        data = LongTensor(data).cuda() if use_cuda else LongTensor(data)
+        result.append(Variable(data))
+    # sent_len*batch_size*word_len
+    return result
+
+
 def pad_batch(batch_data, use_cuda):
     # sample property: id, d_words, q_words, c_words, label, d_q_relation, d_c_relation, d_pos, q_pos, d_ner, features
     # data to pad: word, pos, ne, relation, features
     q_words, q_mask = pad_batch_by_sequence([s.q_words for s in batch_data], LongTensor, use_cuda)
     d_words, d_mask = pad_batch_by_sequence([s.d_words for s in batch_data], LongTensor, use_cuda)
     c_words, c_mask = pad_batch_by_sequence([s.c_words for s in batch_data], LongTensor, use_cuda)
+
+    q_chars = pad_batch_by_char_seq([s.q_chars for s in batch_data], use_cuda)
+    d_chars = pad_batch_by_char_seq([s.d_chars for s in batch_data], use_cuda)
+    c_chars = pad_batch_by_char_seq([s.c_chars for s in batch_data], use_cuda)
 
     d_q_relation, _ = pad_batch_by_sequence([s.d_q_relation for s in batch_data], LongTensor, use_cuda)
     d_c_relation, _ = pad_batch_by_sequence([s.d_c_relation for s in batch_data], LongTensor, use_cuda)
@@ -196,11 +231,14 @@ def pad_batch(batch_data, use_cuda):
             'q_words':q_words,
             'q_mask':q_mask,
             'q_text':q_text,
+            'q_chars':q_chars,
             'd_words':d_words,
             'd_text':d_text,
+            'd_chars':d_chars,
             'c_words':c_words,
             'c_mask':c_mask,
             'c_text':c_text,
+            'c_chars':c_chars,
             'd_mask':d_mask,
             'd_q_relation':d_q_relation,
             'd_c_relation':d_c_relation,

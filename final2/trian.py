@@ -11,7 +11,9 @@ class TriAN(nn.Module):
         self.args = args
         self.embedding_dim = 300
         # 0. Embedding layer
-        self.embeddings = AllEmbedding(*vocab_size_lst, self.embedding_dim, args['pos_emb_dim'], args['ner_emb_dim'], args['rel_emb_dim'], args['dropout_emb'])
+        self.embeddings = AllEmbedding(*vocab_size_lst, self.embedding_dim, args['pos_emb_dim'], args['ner_emb_dim'],
+                                       args['rel_emb_dim'], args['char_emb_dim'], args['dropout_emb'])
+        self.embedding_dim += args['char_emb_dim']
         self.p_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="pq", dropout_prob = args['dropout_emb'])
         self.c_q_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cq", dropout_prob = args['dropout_emb'])
         self.c_p_embedder = SequenceAttentionMM(self.embedding_dim, self.embedding_dim, name="cp", dropout_prob = args['dropout_emb'])
@@ -46,8 +48,10 @@ class TriAN(nn.Module):
         self.q_c_interact = nn.Linear(q_attn_out_size, c_attn_out_size)
         self.m_c_interact = nn.Linear(q_attn_out_size, c_attn_out_size)
 
-    def forward(self, p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor, p_q_relation, p_c_relation, p_sentences):
-        p_emb, q_emb, c_emb, p_pos_emb, p_ner_emb, q_pos_emb, p_q_rel_emb, p_c_rel_emb = self.embeddings([p, q, c, p_pos, p_ner, q_pos, p_q_relation, p_c_relation])
+    def forward(self, p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask,
+                f_tensor, p_q_relation, p_c_relation, p_sentences,
+                d_chars, q_chars, c_chars):
+        p_emb, q_emb, c_emb, p_pos_emb, p_ner_emb, q_pos_emb, p_q_rel_emb, p_c_rel_emb = self.embeddings([p, q, c, p_pos, p_ner, q_pos, p_q_relation, p_c_relation, d_chars, q_chars, c_chars])
         p_q_emb = self.p_q_embedder(p_emb, q_emb, q_mask)
         c_q_emb = self.c_q_embedder(c_emb, q_emb, q_mask)
         c_p_emb = self.c_p_embedder(c_emb, p_emb, p_mask)
