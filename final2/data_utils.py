@@ -183,8 +183,10 @@ def pad_batch_by_char_seq(sent_word_char_lst, use_cuda):
     max_sent_len = max([len(sent) for sent in sent_word_char_lst])
     max_word_len = max([len(word) for sent in sent_word_char_lst for word in sent])
     padded_lst = np.zeros((max_sent_len, batch_size, max_word_len))
+    print (padded_lst.shape)
     for i, sent in enumerate(sent_word_char_lst):
         for w_idx, w in enumerate(sent):
+            print (len(w))
             padded_lst[w_idx, i, :] = w
     result = []
     for data in padded_lst:
