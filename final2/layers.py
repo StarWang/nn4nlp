@@ -190,7 +190,7 @@ class AllEmbedding(nn.Module):
         pQRelEmb, pCRelEmb = self.relEmbedding(pQRel), self.relEmbedding(pCRel)
         pCharsEmb, qCharsEmb, cCharsEmb = self.charEmbedding(pChars), self.charEmbedding(qChars), self.charEmbedding(
             cChars)
-        print (pEmb.size(), pCharsEmb.size())
+        #print (pEmb.size(), pCharsEmb.size())
         pEmb = torch.cat([pEmb, pCharsEmb], dim=2)
         qEmb = torch.cat([qEmb, qCharsEmb], dim=2)
         cEmb = torch.cat([cEmb, cCharsEmb], dim=2)
