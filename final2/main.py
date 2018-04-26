@@ -156,6 +156,7 @@ if __name__ == '__main__':
             saveModel(model, 'data/best_model')
             accy = bestAccy
         saveModel(model, 'checkpoint/model_%d'%epoch)
+        print ('best accuracy:', bestAccy)
     predict(dev_data, config, model, input_lst, error_analysis=True, evaluate=True)
 
     # save test prediction

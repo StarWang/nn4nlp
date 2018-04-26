@@ -210,6 +210,7 @@ class CharEmbed(nn.Module):
         self.embed_dim = embed_dim
         self.output_dim = output_dim
         self.char_embed.weight.data.normal_(0, 0.1)
+        self.char_embed.weight.data[0, :].fill_(0.0)
         self.conv = nn.Conv2d(1, output_dim, (window_size, embed_dim), padding=((window_size - 1) // 2, 0))
 
     # input: batch_size*sent_len*char_num
