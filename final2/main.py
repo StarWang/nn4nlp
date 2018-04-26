@@ -6,6 +6,7 @@ sys.path.extend("./")
 sys.path.extend("./../")
 import copy
 import numpy as np
+import pandas as pd
 from trian import TriAN
 from data_utils import set_seed, load_data, build_dict, get_acc, load_embedding, get_batches, predict
 from torch.optim import Adamax
@@ -24,9 +25,8 @@ def loadModel(model, path):
     model.load_state_dict(state_dict)
     return model
 
-if __name__ == '__main__':
+def main(config):
     # load hyper parameters dictionary
-    config = yaml.load(open('./config.yaml', 'r'))
     config['use_cuda'] = config['use_cuda'] and torch.cuda.is_available()
 
     set_seed(config['seed'])
@@ -166,4 +166,19 @@ if __name__ == '__main__':
         predictions = sorted(predictions)
         for prediction in predictions:
             f.write(','.join(prediction) + '\n')
+    return bestAccy
 
+if __name__ == '__main__':
+    config = yaml.load(open('./config.yaml', 'r'))
+    config['epoch'] = 20
+    accuracy = []
+    for seed in [1234, 123, 12, 3, 4]:
+        for dropout in [0.3, 0.1, 0.2, 0.4]:
+            for char_emb_dim in [200, 50, 100, 150]:
+                config['dropout_rnn_output'] = dropout
+                config['dropout_emb'] = dropout
+                config['char_emb_dim'] = char_emb_dim
+                acc = main(config)
+                accuracy.append([seed, dropout, char_emb_dim, acc])
+                print (pd.DataFrame(accuracy))
+    np.save('grid_search_result', accuracy)

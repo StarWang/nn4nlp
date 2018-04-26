@@ -9,9 +9,9 @@ embedding_file: './data/glove.840B.300d.txt'
 hidden_size: 96
 doc_layers: 1
 rnn_type: 'lstm'
-dropout_rnn_output: 0.3
+dropout_rnn_output: 0.2
 rnn_padding: True
-dropout_emb: 0.3
+dropout_emb: 0.2
 pretrained:
 finetune_topk: 10
 pos_emb_dim: 12
