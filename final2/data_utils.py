@@ -187,7 +187,7 @@ def pad_batch_by_char_seq(sent_word_char_lst, use_cuda):
     for i, sent in enumerate(sent_word_char_lst):
         for w_idx, w in enumerate(sent):
             print (len(w))
-            padded_lst[w_idx, i, :] = w
+            padded_lst[w_idx, i, :len(w)] = w
     result = []
     for data in padded_lst:
         data = LongTensor(data).cuda() if use_cuda else LongTensor(data)
