@@ -188,6 +188,8 @@ def pad_batch_by_char_seq(sent_word_char_lst, use_cuda):
             padded_lst[w_idx, i, :len(w)] = w
     result = []
     for data in padded_lst:
+        curr_max_word_len = np.max((data != 0).sum(axis=1))
+        data = data[:, :curr_max_word_len]
         data = LongTensor(data).cuda() if use_cuda else LongTensor(data)
         result.append(Variable(data))
     # sent_len*batch_size*word_len
