@@ -216,16 +216,12 @@ class CharEmbed(nn.Module):
     def forward(self, char_sequences):
         result = []
         for char_seq in char_sequences:
-            print (char_seq.size())
             # batch_size*word_len*embed_dim
             char_embedding = self.char_embed(char_seq)
             # batch_size*c_out*conv_word_len [*conv_embed_dim(1)]
             conv_result = self.conv(char_embedding.unsqueeze(1)).squeeze(3)
-            print (conv_result.size())
             # batch_size*c_out
             word_char_embed = F.max_pool1d(conv_result, conv_result.size(2)).squeeze(2)
-            print (word_char_embed.size())
-            print ()
             # batch_size*1*c_out
-            result.append(word_char_embed)
+            result.append(word_char_embed.unsqueeze(1))
         return torch.cat(result, dim=1)
