@@ -216,6 +216,7 @@ class CharEmbed(nn.Module):
     def forward(self, char_sequences):
         result = []
         for char_seq in char_sequences:
+            print (char_seq.size())
             # batch_size*word_len*embed_dim
             char_embedding = self.char_embed(char_seq)
             # batch_size*c_out*conv_word_len [*conv_embed_dim(1)]
