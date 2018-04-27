@@ -25,7 +25,9 @@ def loadModel(model, path):
     model.load_state_dict(state_dict)
     return model
 
-def main(config):
+if __name__ == '__main__':
+    config = yaml.load(open('./config.yaml', 'r'))
+    config['epoch'] = 20
     # load hyper parameters dictionary
     config['use_cuda'] = config['use_cuda'] and torch.cuda.is_available()
 
@@ -166,19 +168,3 @@ def main(config):
         predictions = sorted(predictions)
         for prediction in predictions:
             f.write(','.join(prediction) + '\n')
-    return bestAccy
-
-if __name__ == '__main__':
-    config = yaml.load(open('./config.yaml', 'r'))
-    config['epoch'] = 20
-    accuracy = []
-    for seed in [1234, 123, 12, 3, 4]:
-        for dropout in [0.3, 0.1, 0.2, 0.4]:
-            for char_emb_dim in [200, 50, 100, 150]:
-                config['dropout_rnn_output'] = dropout
-                config['dropout_emb'] = dropout
-                config['char_emb_dim'] = char_emb_dim
-                acc = main(config)
-                accuracy.append([seed, dropout, char_emb_dim, acc])
-                print (pd.DataFrame(accuracy))
-    np.save('grid_search_result', accuracy)
