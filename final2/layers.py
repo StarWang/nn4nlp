@@ -213,7 +213,7 @@ class CharEmbed(nn.Module):
         self.char_embed.weight.data[0, :].fill_(0.0)
         self.conv = nn.Conv2d(1, output_dim, (window_size, embed_dim), padding=((window_size - 1) // 2, 0))
 
-    # input: batch_size*sent_len*char_num
+    # input: sent_len*batch_size*char_num
     def forward(self, char_sequences):
         result = []
         for char_seq in char_sequences:
