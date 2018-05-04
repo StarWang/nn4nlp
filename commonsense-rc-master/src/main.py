@@ -83,7 +83,7 @@ if __name__ == '__main__':
             args.seed = seed
             args.dropout_rnn_output = drop_out
             args.dropout_emb = drop_out
-            accuracy = main('seed_{}_drop_out_{}'.format())
+            accuracy = main('seed_{}_drop_out_{}'.format(seed, drop_out))
             stat.append([seed, drop_out, accuracy])
             print (pd.DataFrame(stat, columns=['seed', 'drop_out', 'dev_acc']))
 
