@@ -1,7 +1,9 @@
 *.json
 *.pyc
 *.log
+*.mdl
 
 SemEval/data/
 final/data/
 final2/data/
+commonsense-rc/data/

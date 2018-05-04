@@ -85,14 +85,15 @@ class Sample():
     
     @property
     def d_words_sentences(self):
-        if len(self.script_knowledge_passage) == 0:
-            return self._d_words_sentences
+    	return self._d_words_sentences
+        # if len(self.script_knowledge_passage) == 0:
+        #     return self._d_words_sentences
 
-        result = copy.deepcopy(self._d_words_sentences)
-        index = random.randint(0, len(self.script_knowledge_passage)-1)
-        result += self.script_knowledge_passage[index]
+        # result = copy.deepcopy(self._d_words_sentences)
+        # index = random.randint(0, len(self.script_knowledge_passage)-1)
+        # result += self.script_knowledge_passage[index]
         
-        return result
+        # return result
 
 
 def get_chars_ind_lst(char_dict, word_lst):

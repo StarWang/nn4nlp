@@ -177,7 +177,7 @@ class InputModule(nn.Module):
         return facts
 
 class DMNPlus(nn.Module):
-    def __init__(self, hidden_size, num_hop=3):
+    def __init__(self, hidden_size, num_hop=1):
         super(DMNPlus, self).__init__()
         self.num_hop = num_hop
 
@@ -198,7 +198,7 @@ class DMNPlus(nn.Module):
         return M.squeeze()
 
 class DMNPlus2(nn.Module):
-    def __init__(self, hidden_size, num_hop=3):
+    def __init__(self, hidden_size, num_hop=1):
         super(DMNPlus2, self).__init__()
         self.num_hop = num_hop
 

@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     # get word2ind dictionary, order: word, pos, ne, relation, character
     w2i_lst = []
-    for t in ['word', 'pos', 'ne', 'relation', 'char']:
+    for t in ['word', 'pos', 'ne', 'relation']:
         w2i_lst.append(build_dict(t))
 
     # load train data
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     predict(dev_data, config, model, input_lst)
 
     bestAccy = -1
-    if config['pretrained'] is not None:
-        model = loadModel(model, config['pretrained'])
+    # if config['pretrained'] is not None:
+    #     model = loadModel(model, config['pretrained'])
 
     for epoch in range(config['epoch']):
         model.train()
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         lr_scheduler.step()
         print ('lr:', lr_scheduler.get_lr()[0])
         print ('epoch:', epoch, 'training accuracy binary:', np.array(train_acc).mean())
-        predict(train_data, config, model, input_lst)
+        # predict(train_data, config, model, input_lst)
 
         validation_acc = []
         # get accuracy in validation data
