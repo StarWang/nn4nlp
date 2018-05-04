@@ -68,7 +68,7 @@ class Model:
             self.updates += 1
             iter_cnt += 1
 
-            if self.updates % 20 == 0:
+            if self.updates % 50 == 0:
                 print('Iter: %d/%d, Loss: %f' % (iter_cnt, num_iter, loss.data[0]))
         self.scheduler.step()
         print('LR:', self.scheduler.get_lr()[0])

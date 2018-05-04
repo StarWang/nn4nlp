@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from utils import vocab, pos_vocab, ner_vocab, rel_vocab
+from utils import vocab, pos_vocab, ner_vocab, rel_vocab, char_vocab
 
 class Example:
 
@@ -13,6 +13,9 @@ class Example:
         self.d_pos = input_dict['d_pos']
         self.d_ner = input_dict['d_ner']
         self.q_pos = input_dict['q_pos']
+        #self.d_chars = get_chars_ind_lst(char_dict, info['d_words'].split(' '))
+        #self.q_chars = get_chars_ind_lst(char_dict, info['q_words'].split(' '))
+        #self.c_chars = get_chars_ind_lst(char_dict, info['c_words'].split(' '))
         assert len(self.q_pos) == len(self.question.split()), (self.q_pos, self.question)
         assert len(self.d_pos) == len(self.passage.split())
         self.features = np.stack([input_dict['in_q'], input_dict['in_c'], \
@@ -37,6 +40,9 @@ class Example:
 
 class EamplePair:
     def __init__(self, e1, e2):
+        p_id1, q_id1, c_id1 = e1.id.split('_')[-3:]
+        p_id2, q_id2, c_id2 = e2.id.split('_')[-3:]
+        assert p_id1 == p_id2 and q_id1 == q_id2 and c_id1 != c_id2
         self.e1 = e1
         self.e2 = e2
 
@@ -99,3 +105,9 @@ def batchify(batch_data):
     #d_chars = pad_batch_by_char_seq([s.d_chars for s in batch_data])
     #c_chars = pad_batch_by_char_seq([s.c_chars for s in batch_data])
     return p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor, p_q_relation, p_c_relation, y
+
+def get_chars_ind_lst(word_lst):
+    chars = []
+    for w in word_lst:
+        chars.append([char_vocab[c] for c in w])
+    return chars

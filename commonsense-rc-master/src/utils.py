@@ -86,7 +86,7 @@ class Dictionary(object):
                   if k not in {'<NULL>', '<UNK>'}]
         return tokens
 
-vocab, pos_vocab, ner_vocab, rel_vocab = Dictionary(), Dictionary(), Dictionary(), Dictionary()
+vocab, pos_vocab, ner_vocab, rel_vocab, char_vocab = Dictionary(), Dictionary(), Dictionary(), Dictionary(), Dictionary()
 def gen_race_vocab(data):
     race_vocab = Dictionary()
     build_vocab()
@@ -241,6 +241,67 @@ def eval_based_on_outputs(path):
     assert len(prediction) == len(gold)
     acc = sum([int(p == g) for p, g in zip(prediction, gold)]) / len(gold)
     print('Accuracy on dev_data: %f' % acc)
+
+
+
+def predict(data, config, model, input_lst, error_analysis=False, evaluate=True):
+    '''
+     since we already know one question has one answer, we need to select the choice with
+     the largest probability.
+    '''
+    pred_lst, y_lst = [], []
+    id_lst, full_id_lst = [], []
+    q_lst, d_lst, c_lst = [], [], []
+    for batch_data in get_batches(data, config['batch_size'], config['use_cuda']):
+        # id format: other_docid_qid_cid -> docid_qid
+        id_lst += ['_'.join(x.split('_')[:3]) for x in batch_data['id']]
+        full_id_lst += [x for x in batch_data['id']]
+        y = batch_data['label']
+        y_lst += y.data.cpu().numpy().tolist()
+        pred = model(*[batch_data[x] for x in input_lst])
+        pred_lst += pred.data.cpu().numpy().tolist()
+        q_lst += batch_data['q_text']
+        d_lst += batch_data['d_text']
+        c_lst += batch_data['c_text']
+
+    count, correct = 0, 0
+    df = pd.DataFrame(np.stack([pred_lst, y_lst, id_lst, q_lst, d_lst, c_lst, full_id_lst], axis=1),
+            columns=['pred', 'y', 'id', 'question', 'document', 'choice', 'full_id'])
+
+    prediction_lst = []
+    if error_analysis:
+        error_file = open('error_records', 'w')
+        correct_file = open('correct_records', 'w')
+
+    for id, df_by_group in df.groupby('id'):
+        count += 1
+        prediction = df_by_group['pred'].values.argmax()
+        y = df_by_group['y'].values.argmax()
+        is_correct = prediction == y
+        correct += is_correct
+
+        prediction_lst.append(df_by_group['full_id'].iloc[prediction].split('_')[1:])
+
+        if error_analysis:
+            f = correct_file if is_correct else error_file
+            case_num = correct if is_correct else count - correct
+            f.write('case:{}\n'.format(case_num))
+            f.write('<document>\n{}\n'.format(df_by_group['document'].iloc[0]))
+            f.write('<question>\n{}\n'.format(df_by_group['question'].iloc[0]))
+            f.write('<choices>\n')
+            for i, choice in enumerate(df_by_group['choice']):
+                f.write('{}:{}\n'.format(i, choice))
+            f.write('pred:{}, truth:{}\n'.format(prediction, y))
+
+    if error_analysis:
+        error_file.close()
+        correct_file.close()
+
+    if evaluate:
+        print ('max prob accuracy:{}/{}={}'.format(correct, count, correct/count))
+
+    return prediction_lst, correct/count
+
 
 if __name__ == '__main__':
     # build_vocab()

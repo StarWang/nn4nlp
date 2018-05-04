@@ -45,6 +45,7 @@ if __name__ == '__main__':
         print('Train accuracy: %f' % train_acc)
         dev_acc = model.evaluate(dev_data, debug=True)
         print('Dev accuracy: %f' % dev_acc)
+        print('Best dev accuracy: %f' % best_dev_acc)
 
         if dev_acc > best_dev_acc:
             best_dev_acc = dev_acc
