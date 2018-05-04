@@ -6,7 +6,8 @@ import numpy as np
 
 from datetime import datetime
 
-from utils import load_data, build_vocab
+from utils import load_data, build_vocab, gen_submission, gen_final_submission
+
 from config import args
 from model import Model
 
@@ -54,5 +55,23 @@ if __name__ == '__main__':
         elif args.test_mode:
             model.save(checkpoint_path)
         print('Epoch %d use %d seconds.' % (i, time.time() - start_time))
+
+    dev_data = load_data('./data/test-data-processed.json')
+    model_path_list = [checkpoint_path]
+    for model_path in model_path_list:
+        print('Load model from %s...' % model_path)
+        args.pretrained = model_path
+        model = Model(args)
+
+        # evaluate on development dataset
+        dev_acc = model.evaluate(dev_data)
+        print('dev accuracy: %f' % dev_acc)
+
+        # generate submission zip file for Codalab
+        prediction = model.predict(dev_data)
+        gen_submission(dev_data, prediction)
+
+    gen_final_submission(dev_data)
+
 
     print('Best dev accuracy: %f' % best_dev_acc)

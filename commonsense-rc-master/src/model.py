@@ -103,7 +103,8 @@ class Model:
                 cur_choices.append(ex.choice)
             if (i > 0 and ex.id[:-1] != dev_data[i - 1].id[:-1]) or (i + 1 == len(dev_data)):
                 py, gy = np.argmax(cur_pred), np.argmax(cur_gold)
-                if debug:
+                if debug and py != gy:
+                    writer.write('Passage_question id: {}\n'.format(dev_data[i - 1].id[:-1]))
                     writer.write('Passage: %s\n' % dev_data[i - 1].passage)
                     writer.write('Question: %s\n' % dev_data[i - 1].question)
                     for idx, choice in enumerate(cur_choices):
