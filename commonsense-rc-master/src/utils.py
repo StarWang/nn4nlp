@@ -190,7 +190,7 @@ def gen_debug_file(data, prediction):
 
     writer.close()
 
-def gen_final_submission(data):
+def gen_final_submission(data, output_prefix):
     import glob
     proba_list = []
     for f in glob.glob('./out-*.txt'):
@@ -210,7 +210,7 @@ def gen_final_submission(data):
         else:
             avg_proba[-1].append(cur_avg_p)
     gen_debug_file(data, [p for sublist in avg_proba for p in sublist])
-    writer = open('answer.txt', 'w', encoding='utf-8')
+    writer = open('{}_answer.txt'.format(output_prefix), 'w', encoding='utf-8')
     assert len(avg_proba) == len(p_q_id)
     cnt = 0
     for probas, cur_p_q_id in zip(avg_proba, p_q_id):
