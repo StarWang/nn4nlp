@@ -32,6 +32,7 @@ parser.add_argument('--seed', type=int, default=1234, help='random seed')
 parser.add_argument('--test_mode', type='bool', default=False, help='In test mode, validation data will be used for training')
 parser.add_argument('--use_script', type='bool', default=False, help='Whether to use script knowledge')
 parser.add_argument('--num_hop', type=int, default=1, help='The number of hop in memory network')
+parser.add_argument('--use_rank_loss', type='bool', default=False, help='Whether to use ranking loss')
 args = parser.parse_args()
 
 

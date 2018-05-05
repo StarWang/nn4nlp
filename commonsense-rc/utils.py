@@ -247,6 +247,9 @@ def eval_based_on_outputs(path):
     acc = sum([int(p == g) for p, g in zip(prediction, gold)]) / len(gold)
     print('Accuracy on dev_data: %f' % acc)
 
+
+
+
 if __name__ == '__main__':
     # build_vocab()
     trial_data = load_data('./data/trial-data-processed.json')

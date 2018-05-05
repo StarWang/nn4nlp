@@ -55,6 +55,9 @@ class Example:
             s = [vocab[w] for w in s.split(' ')]
             self._d_words_sentences.append(s)
 
+    def get_p_q_id(self):
+        return self.id.split('_')[-3:-1]
+
     def __str__(self):
         return 'Passage: %s\n Question: %s\n Answer: %s, Label: %d' % (self.passage, self.question, self.choice, self.label)
         
@@ -166,3 +169,14 @@ def get_chars_tensor(word_lst):
     for w_i, w in enumerate(chars_ind_lst):
         chars[0, w_i, :len(w)].copy_(torch.LongTensor(w))
     return chars
+
+
+def to_example_pair(data):
+    pair_data = []
+    data.sort(key=lambda x:x.get_p_q_id())
+    for i, ex in enumerate(data):
+        if i % 2 == 0:
+            continue
+        assert data[i].get_p_q_id() == data[i - 1].get_p_q_id()
+        pair_data.append(ExamplePair(data[i - 1], data[i - 2]))
+    return pair_data

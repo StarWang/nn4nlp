@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pandas as pd
 from utils import load_data, build_vocab, gen_submission, gen_final_submission
+from doc import to_example_pair
 from get_sequence import getTitle, readScriptKnowledge
 from config import args
 from model import Model
@@ -32,6 +33,9 @@ def main(output_prefix):
                             args.use_script, args.use_char_emb)
     dev_data = load_data('./data/dev-data-processed.json', devScriptKnowledge,
                          args.use_script, args.use_char_emb)
+    ori_train_data = train_data
+    if args.use_rank_loss:
+        train_data = to_example_pair(train_data)
     if args.test_mode:
         # use validation data as training data
         train_data += dev_data
@@ -53,7 +57,7 @@ def main(output_prefix):
         cur_train_data = train_data
 
         model.train(cur_train_data)
-        train_acc = model.evaluate(train_data[:2000], output_prefix, debug=False, eval_train=True)
+        train_acc = model.evaluate(ori_train_data[:2000], output_prefix, debug=False, eval_train=True)
         print('Train accuracy: %f' % train_acc)
         dev_acc = model.evaluate(dev_data, output_prefix, debug=True)
         print('Dev accuracy: %f' % dev_acc)

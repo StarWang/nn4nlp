@@ -46,16 +46,28 @@ class Model:
                 num_parameters += np.prod(sz)
         print('Number of parameters: ', num_parameters)
 
+    def _get_bce_loss(self, batch_input):
+        feed_input = [x for x in batch_input[:-1]]
+        y = batch_input[-1]
+        pred_proba = self.network(*feed_input)
+        loss = F.binary_cross_entropy(pred_proba, y)
+        print (pred_proba)
+        print (y)
+        raise
+        return pred_proba, loss
+
     def train(self, train_data):
         self.network.train()
         self.updates = 0
         iter_cnt, num_iter = 0, (len(train_data) + self.batch_size - 1) // self.batch_size
-        for batch_input in self._iter_data(train_data):
-            feed_input = [x for x in batch_input[:-1]]
-            y = batch_input[-1]
-            pred_proba = self.network(*feed_input)
-
-            loss = F.binary_cross_entropy(pred_proba, y)
+        for batch_input in self._iter_data(train_data, train_phase=True):
+            if self.args.use_rank_loss:
+                pred_proba1, _ = self._get_bce_loss(batch_input[0])
+                y = batch_input[0][-1]
+                pred_proba2, _ = self._get_bce_loss(batch_input[1])
+                loss = F.log(pred_proba1)
+            else:
+                _, loss = self._get_bce_loss(batch_input)
             self.optimizer.zero_grad()
             loss.backward()
 
@@ -135,19 +147,25 @@ class Model:
             prediction += list(pred_proba)
         return prediction
 
-    def _iter_data(self, data):
+    def _get_batch_input(self, batch_data):
+        batch_input = batchify(batch_data, self.args.use_char_emb)
+        if self.use_cuda:
+            batch_input = [Variable(x.cuda(async=True)) for x in batch_input]
+        else:
+            batch_input = [Variable(x) for x in batch_input]
+        return batch_input
+
+    def _iter_data(self, data, train_phase=False):
         num_iter = (len(data) + self.batch_size - 1) // self.batch_size
         for i in range(num_iter):
             start_idx = i * self.batch_size
             batch_data = data[start_idx:(start_idx + self.batch_size)]
-            batch_input = batchify(batch_data, self.args.use_char_emb)
-
-            # Transfer to GPU
-            if self.use_cuda:
-                batch_input = [Variable(x.cuda(async=True)) for x in batch_input]
+            if self.args.use_rank_loss and train_phase:
+                batch_input_1 = self._get_batch_input([p.ex1 for p in batch_data])
+                batch_input_2 = self._get_batch_input([p.ex2 for p in batch_data])
+                yield [batch_input_1, batch_input_2]
             else:
-                batch_input = [Variable(x) for x in batch_input]
-            yield batch_input
+                yield self._get_batch_input(batch_data)
 
     def load_embeddings(self, words, embedding_file):
         """Load pretrained embeddings for a given list of words, if they exist.
