@@ -163,6 +163,7 @@ def get_chars_tensor(word_lst):
     chars_ind_lst = get_chars_ind_lst(word_lst)
     max_len = max([len(x) for x in chars_ind_lst])
     chars = torch.LongTensor((1, len(chars_ind_lst), max_len))
+    print (chars.size())
     for w_i, w in enumerate(chars_ind_lst):
         chars[0, w_i, :len(w)].copy_(w)
     return chars
