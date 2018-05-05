@@ -177,6 +177,9 @@ def to_example_pair(data):
     for i, ex in enumerate(data):
         if i % 2 == 0:
             continue
+        print (data[i].get_p_q_id())
+        print (data[i - 1].get_p_q_id())
+        print ()
         assert data[i].get_p_q_id() == data[i - 1].get_p_q_id()
-        pair_data.append(ExamplePair(data[i - 1], data[i - 2]))
+        pair_data.append(ExamplePair(data[i - 1], data[i]))
     return pair_data
