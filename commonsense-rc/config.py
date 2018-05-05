@@ -34,7 +34,6 @@ parser.add_argument('--use_script', type='bool', default=False, help='Whether to
 parser.add_argument('--num_hop', type=int, default=1, help='The number of hop in memory network')
 args = parser.parse_args()
 
-print(args)
 
 if args.pretrained:
     assert all(os.path.exists(p) for p in args.pretrained.split(',')), 'Checkpoint %s does not exist.' % args.pretrained
