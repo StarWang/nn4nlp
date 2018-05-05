@@ -17,6 +17,8 @@ class Model:
     def __init__(self, args):
         self.args = args
         self.batch_size = args.batch_size
+        if self.args.use_rank_loss:
+            self.batch_size //= 2
         self.finetune_topk = args.finetune_topk
         self.lr = args.lr
         self.use_cuda = (args.use_cuda == True) and torch.cuda.is_available()
@@ -171,8 +173,6 @@ class Model:
         return batch_input
 
     def _iter_data(self, data, train_phase=False):
-        if self.args.use_rank_loss:
-            self.batch_size //= 2
         num_iter = (len(data) + self.batch_size - 1) // self.batch_size
         for i in range(num_iter):
             start_idx = i * self.batch_size
