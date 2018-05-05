@@ -22,8 +22,8 @@ class TriAN(nn.Module):
         self.rel_embedding = nn.Embedding(len(rel_vocab), args.rel_emb_dim, padding_idx=0)
         self.rel_embedding.weight.data.normal_(0, 0.1)
         if args.use_char_emb:
-            self.char_emb = layers.SequenceWise(layers.CharEmbed(output_dim=args['char_emb_dim']))
-            self.embedding_dim += args['char_emb_dim']
+            self.char_emb = layers.SequenceWise(layers.CharEmbed(output_dim=args.char_emb_dim))
+            self.embedding_dim += args.char_emb_dim
         self.RNN_TYPES = {'lstm': nn.LSTM, 'gru': nn.GRU}
         self.memory_network = DMNPlus2(2 * args.hidden_size, num_hop=args.num_hop)
 
