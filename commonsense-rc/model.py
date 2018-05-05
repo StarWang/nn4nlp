@@ -51,10 +51,18 @@ class Model:
         y = batch_input[-1]
         pred_proba = self.network(*feed_input)
         loss = F.binary_cross_entropy(pred_proba, y)
-        print (pred_proba)
-        print (y)
-        raise
         return pred_proba, loss
+
+    def _zero_to_minus_one(self, y):
+        y = y.data.cpu.numpy()
+        result = (np.ones(y.shape)*(-1))**y
+        result = torch.FloatTensor(-result)
+        if self.args.use_cuda:
+            result = Variable(result.cuda(async=True))
+        else:
+            result = Variable(result)
+        return result
+
 
     def train(self, train_data):
         self.network.train()
@@ -63,9 +71,10 @@ class Model:
         for batch_input in self._iter_data(train_data, train_phase=True):
             if self.args.use_rank_loss:
                 pred_proba1, _ = self._get_bce_loss(batch_input[0])
-                y = batch_input[0][-1]
+                y1 = self._zero_to_minus_one(batch_input[0][-1])
                 pred_proba2, _ = self._get_bce_loss(batch_input[1])
-                loss = F.log(pred_proba1)
+                y2 = self._zero_to_minus_one(batch_input[1][-1])
+                loss = -(y1*torch.log(pred_proba1) + y2*torch.log(pred_proba2))
             else:
                 _, loss = self._get_bce_loss(batch_input)
             self.optimizer.zero_grad()
