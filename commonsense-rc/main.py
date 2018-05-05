@@ -101,8 +101,10 @@ if __name__ == '__main__':
                     args.epoch = 1
 
                     accuracy = main('seed_{}_drop_out_{}_num_hop_{}_use_script_{}'.format(seed, drop_out, num_hop, use_script))
-                    stat.append([seed, drop_out, accuracy])
-                    print (pd.DataFrame(stat, columns=['seed', 'drop_out', 'dev_acc']))
+                    stat.append([seed, drop_out, accuracy, num_hop, use_script])
+                    print ('-'*20 + 'STAT' + '-'*20)
+                    print (pd.DataFrame(stat, columns=['seed', 'drop_out', 'dev_acc', 'num_hop', 'use_script']))
+                    print ('-'*20 + 'STAT' + '-'*20)
 
     np.save('statistics', stat)
 
