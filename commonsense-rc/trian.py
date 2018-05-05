@@ -86,7 +86,7 @@ class TriAN(nn.Module):
         self.m_c_bilinear = nn.Linear(memory_hidden_size, choice_hidden_size)
 
     def forward(self, p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor,
-                p_q_relation, p_c_relation, p_sentences, q_chars, d_chars, c_chars):
+                p_q_relation, p_c_relation, p_sentences, q_chars, d_chars, c_chars, raw_output=False):
         p_emb, q_emb, c_emb = self.embedding(p), self.embedding(q), self.embedding(c)
         if self.args.use_char_emb:
             q_char_emb = self.char_emb(q_chars)
@@ -145,6 +145,8 @@ class TriAN(nn.Module):
 
         logits = torch.sum(self.m_c_bilinear(memory) * c_hidden, dim=-1)
         logits += torch.sum(self.q_c_bilinear(q_hidden) * c_hidden, dim=-1)
+        if raw_output:
+            return logits
         proba = F.sigmoid(logits)
         # print('proba', proba.size())
 

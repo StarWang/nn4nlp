@@ -49,7 +49,7 @@ class Model:
     def _get_bce_loss(self, batch_input):
         feed_input = [x for x in batch_input[:-1]]
         y = batch_input[-1]
-        pred_proba = self.network(*feed_input)
+        pred_proba = self.network(*feed_input, self.args.use_rank_loss)
         loss = F.binary_cross_entropy(pred_proba, y) if not self.args.use_rank_loss else None
         return pred_proba, loss
 
@@ -64,6 +64,8 @@ class Model:
         return result
 
     def _softmax_loss(self, prob1, y1, prob2, y2):
+        print (torch.cat([prob1, prob2], dim=1))
+        return F.cross_entropy(torch.cat([prob1, prob2], dim=1), torch.cat([y1, y2], dim=1))
         print (prob1.data.cpu().numpy())
         print (prob2.data.cpu().numpy())
         print ()
@@ -111,7 +113,7 @@ class Model:
         for batch_input in self._iter_data(dev_data):
             feed_input = [x for x in batch_input[:-1]]
             y = batch_input[-1].data.cpu().numpy()
-            pred_proba = self.network(*feed_input)
+            pred_proba = self.network(*feed_input, self.args.use_rank_loss)
             pred_proba = pred_proba.data.cpu()
             prediction += list(pred_proba)
             gold += [int(label) for label in y]
@@ -160,7 +162,7 @@ class Model:
         prediction = []
         for batch_input in self._iter_data(test_data):
             feed_input = [x for x in batch_input[:-1]]
-            pred_proba = self.network(*feed_input)
+            pred_proba = self.network(*feed_input, self.args.use_rank_loss)
             pred_proba = pred_proba.data.cpu()
             prediction += list(pred_proba)
         return prediction
