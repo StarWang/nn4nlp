@@ -65,6 +65,7 @@ class Model:
 
     def _softmax_loss(self, prob1, y1, prob2, y2):
         print (-torch.log((prob1*y1 + prob2*y2)/(prob1 + prob2 + 1e-5)))
+        print ((prob1*y1 + prob2*y2)/(prob1 + prob2 + 1e-5))
         return torch.mean(-torch.log((prob1*y1 + prob2*y2)/(prob1 + prob2 + 1e-5)))
 
 
