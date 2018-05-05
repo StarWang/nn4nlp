@@ -18,6 +18,7 @@ def set_seed(seed):
     random.seed(seed)
 
 def main(output_prefix):
+    print (args)
     scriptKnowledge, _ = getTitle()
     trainScriptKnowledge = readScriptKnowledge('data/train_script.txt', scriptKnowledge)
     trialScriptKnowledge = readScriptKnowledge('data/trial_script.txt', scriptKnowledge)
@@ -96,6 +97,9 @@ if __name__ == '__main__':
                     args.dropout_emb = drop_out
                     args.use_script = use_script
                     args.pretrained = ''
+                    # debugging
+                    args.epoch = 1
+
                     accuracy = main('seed_{}_drop_out_{}_num_hop_{}_use_script_{}'.format(seed, drop_out, num_hop, use_script))
                     stat.append([seed, drop_out, accuracy])
                     print (pd.DataFrame(stat, columns=['seed', 'drop_out', 'dev_acc']))
