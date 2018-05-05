@@ -102,6 +102,9 @@ if __name__ == '__main__':
                     for num_hop in [1, 2, 3]:
                         for use_script in [True, False]:
                             set_seed(seed)
+                            #debugging
+                            args.use_rank_loss = True
+
                             args.use_char_emb = use_char_emb
                             args.char_emb_dim = char_emb_dim
                             args.seed = seed
