@@ -164,5 +164,5 @@ def get_chars_tensor(word_lst):
     max_len = max([len(x) for x in chars_ind_lst])
     chars = torch.LongTensor(1, len(chars_ind_lst), max_len).fill_(0)
     for w_i, w in enumerate(chars_ind_lst):
-        chars[0, w_i, :len(w)].copy_(w)
+        chars[0, w_i, :len(w)].copy_(torch.LongTensor(w))
     return chars
