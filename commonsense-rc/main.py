@@ -90,7 +90,7 @@ def main(output_prefix):
 
 if __name__ == '__main__':
     stat = []
-    for seed in [1234, 123, 12, 1]:
+    for seed in [1234, 123]:
         for drop_out in [0.4, 0.3, 0.2, 0.1]:
             for use_char_emb in [False, True]:
                 char_emb_dim_lst = [50, 100, 150, 200] if use_char_emb else [-1]
@@ -106,8 +106,6 @@ if __name__ == '__main__':
                             args.dropout_emb = drop_out
                             args.use_script = use_script
                             args.pretrained = ''
-                            # debugging
-                            args.epoch = 2
 
                             accuracy = main('seed_{}_drop_out_{}_num_hop_{}_use_script_{}_use_char_emb_{}'
                                             'char_emb_dim_{}'.format(seed, drop_out, num_hop, use_script,
