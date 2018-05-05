@@ -172,7 +172,7 @@ class Model:
 
     def _iter_data(self, data, train_phase=False):
         if self.args.use_rank_loss:
-            self.batch_size /= 2
+            self.batch_size //= 2
         num_iter = (len(data) + self.batch_size - 1) // self.batch_size
         for i in range(num_iter):
             start_idx = i * self.batch_size
