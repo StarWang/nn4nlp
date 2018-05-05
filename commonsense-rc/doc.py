@@ -4,11 +4,11 @@ import copy
 import random
 import re
 
-from utils import vocab, pos_vocab, ner_vocab, rel_vocab
+from utils import vocab, pos_vocab, ner_vocab, rel_vocab, char_vocab
 
 class Example:
 
-    def __init__(self, input_dict, script_knowledge, use_script_knowledge):
+    def __init__(self, input_dict, script_knowledge, use_script_knowledge, use_char_emb):
         self.id = input_dict['id']
         self.passage_id = int(self.id.split('_')[-3])
         self.use_script_knowledge = use_script_knowledge
@@ -18,6 +18,10 @@ class Example:
         self.d_pos = input_dict['d_pos']
         self.d_ner = input_dict['d_ner']
         self.q_pos = input_dict['q_pos']
+        if use_char_emb:
+            self.d_chars = get_chars_ind_lst(input_dict['d_words'].split(' '))
+            self.q_chars = get_chars_ind_lst(input_dict['q_words'].split(' '))
+            self.c_chars = get_chars_ind_lst(input_dict['c_words'].split(' '))
         assert len(self.q_pos) == len(self.question.split()), (self.q_pos, self.question)
         assert len(self.d_pos) == len(self.passage.split())
         self.features = np.stack([input_dict['in_q'], input_dict['in_c'], \
@@ -65,6 +69,16 @@ class Example:
         
         return result
 
+
+class ExamplePair:
+    def __init__(self, e1, e2):
+        p_id1, q_id1, c_id1 = e1.id.split('_')[-3:]
+        p_id2, q_id2, c_id2 = e2.id.split('_')[-3:]
+        assert p_id1 == p_id2 and q_id1 == q_id2 and c_id1 != c_id2
+        self.e1 = e1
+        self.e2 = e2
+
+
 def _to_indices_and_mask(batch_tensor, need_mask=True):
     mx_len = max([t.size(0) for t in batch_tensor])
     batch_size = len(batch_tensor)
@@ -106,7 +120,19 @@ def _pad_sentence_data(batch_seq):
 
     return torch.LongTensor(padded_batch)
 
-def batchify(batch_data):
+# input format: [[w1c1, w1c2, ...], [w2c1, w2c2, ...], ...]
+def pad_batch_by_char_seq(sent_word_char_lst):
+    batch_size = len(sent_word_char_lst)
+    max_sent_len = max([len(sent) for sent in sent_word_char_lst])
+    max_word_len = max([len(word) for sent in sent_word_char_lst for word in sent])
+    padded_lst = np.zeros((batch_size, max_sent_len, max_word_len))
+    for i, sent in enumerate(sent_word_char_lst):
+        for w_idx, w in enumerate(sent):
+            padded_lst[i, w_idx, :len(w)] = w
+    # sent_len*batch_size*word_len
+    return torch.LongTensor(padded_lst)
+
+def batchify(batch_data, use_char_emb):
     p, p_mask = _to_indices_and_mask([ex.d_tensor for ex in batch_data])
     p_pos = _to_indices_and_mask([ex.d_pos_tensor for ex in batch_data], need_mask=False)
     p_ner = _to_indices_and_mask([ex.d_ner_tensor for ex in batch_data], need_mask=False)
@@ -119,4 +145,17 @@ def batchify(batch_data):
     f_tensor = _to_feature_tensor([ex.features for ex in batch_data])
     y = torch.FloatTensor([ex.label for ex in batch_data])
     p_sentences = _pad_sentence_data([ex.d_words_sentences for ex in batch_data])
-    return p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor, p_q_relation, p_c_relation, p_sentences, y
+    q_chars, d_chars, c_chars = None
+    if use_char_emb:
+        q_chars = pad_batch_by_char_seq([s.q_chars for s in batch_data])
+        d_chars = pad_batch_by_char_seq([s.d_chars for s in batch_data])
+        c_chars = pad_batch_by_char_seq([s.c_chars for s in batch_data])
+    return p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor, p_q_relation, p_c_relation, p_sentences, \
+           q_chars, d_chars, c_chars, y
+
+
+def get_chars_ind_lst(word_lst):
+    chars = []
+    for w in word_lst:
+        chars.append([char_vocab[c] for c in w])
+    return chars

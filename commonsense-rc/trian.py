@@ -21,6 +21,9 @@ class TriAN(nn.Module):
         self.ner_embedding.weight.data.normal_(0, 0.1)
         self.rel_embedding = nn.Embedding(len(rel_vocab), args.rel_emb_dim, padding_idx=0)
         self.rel_embedding.weight.data.normal_(0, 0.1)
+        if args.use_char_emb:
+            self.char_emb = layers.SequenceWise(layers.CharEmbed(output_dim=args['char_emb_dim']))
+            self.embedding_dim += args['char_emb_dim']
         self.RNN_TYPES = {'lstm': nn.LSTM, 'gru': nn.GRU}
         self.memory_network = DMNPlus2(2 * args.hidden_size, num_hop=args.num_hop)
 
@@ -82,8 +85,17 @@ class TriAN(nn.Module):
         self.q_c_bilinear = nn.Linear(question_hidden_size, choice_hidden_size)
         self.m_c_bilinear = nn.Linear(memory_hidden_size, choice_hidden_size)
 
-    def forward(self, p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor, p_q_relation, p_c_relation, p_sentences):
+    def forward(self, p, p_pos, p_ner, p_mask, q, q_pos, q_mask, c, c_mask, f_tensor,
+                p_q_relation, p_c_relation, p_sentences, q_chars, d_chars, c_chars):
         p_emb, q_emb, c_emb = self.embedding(p), self.embedding(q), self.embedding(c)
+        if self.args.use_char_emb:
+            q_char_emb = self.char_emb(q_chars)
+            p_char_emb = self.char_emb(d_chars)
+            c_char_emb = self.char_emb(c_chars)
+            q_emb = torch.cat([q_emb, q_char_emb], dim=2)
+            p_emb = torch.cat([p_emb, p_char_emb], dim=2)
+            c_emb = torch.cat([c_emb, c_char_emb], dim=2)
+
         p_pos_emb, p_ner_emb, q_pos_emb = self.pos_embedding(p_pos), self.ner_embedding(p_ner), self.pos_embedding(q_pos)
         p_q_rel_emb, p_c_rel_emb = self.rel_embedding(p_q_relation), self.rel_embedding(p_c_relation)
 

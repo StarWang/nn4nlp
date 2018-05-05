@@ -20,12 +20,12 @@ baseline = wikiwords.freq('the')
 def get_idf(w):
     return np.log(baseline / (wikiwords.freq(w.lower()) + 1e-10))
 
-def load_data(path, scriptKnowledge, use_script_knowledge = True):
+def load_data(path, scriptKnowledge, use_script_knowledge, use_char_emb):
     from doc import Example
     data = []
     for line in open(path, 'r', encoding='utf-8'):
         if path.find('race') < 0 or np.random.random() < 0.6:
-            data.append(Example(json.loads(line), scriptKnowledge, use_script_knowledge=use_script_knowledge))
+            data.append(Example(json.loads(line), scriptKnowledge, use_script_knowledge, use_char_emb))
     print('Load %d examples from %s...' % (len(data), path))
     return data
 
@@ -86,7 +86,7 @@ class Dictionary(object):
                   if k not in {'<NULL>', '<UNK>'}]
         return tokens
 
-vocab, pos_vocab, ner_vocab, rel_vocab = Dictionary(), Dictionary(), Dictionary(), Dictionary()
+vocab, pos_vocab, ner_vocab, rel_vocab, char_vocab = Dictionary(), Dictionary(), Dictionary(), Dictionary(), Dictionary()
 def gen_race_vocab(data):
     race_vocab = Dictionary()
     build_vocab()
@@ -161,6 +161,8 @@ def build_vocab(data=None):
     print('Load relation vocabulary from ./data/rel_vocab...')
     for w in open('./data/rel_vocab', encoding='utf-8'):
         rel_vocab.add(w.strip())
+    for w in open('./data/char_vocab', encoding='utf-8'):
+        char_vocab.add(w.strip('\n'))
     print('Rel vocabulary size: %d' % len(rel_vocab))
 
 def gen_submission(data, prediction):

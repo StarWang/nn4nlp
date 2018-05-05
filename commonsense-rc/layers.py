@@ -296,3 +296,49 @@ def weighted_avg(x, weights):
         x_avg: batch * hdim
     """
     return weights.unsqueeze(1).bmm(x).squeeze(1)
+
+
+class CharEmbed(nn.Module):
+    def __init__(self, vocab_size, window_size=5, embed_dim=50, output_dim=200):
+        super(CharEmbed, self).__init__()
+        self.char_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
+        self.embed_dim = embed_dim
+        self.output_dim = output_dim
+        self.char_embed.weight.data.normal_(0, 0.1)
+        self.char_embed.weight.data[0].fill_(0.0)
+        self.conv = nn.Conv2d(1, output_dim, (window_size, embed_dim), padding=((window_size - 1)//2, 0))
+
+    # input: batch_size*char_num
+    def forward(self, char_sequences):
+        # batch_size*word_len*embed_dim
+        char_embedding = self.char_embed(char_sequences)
+        # batch_size*c_out*conv_word_len [*conv_embed_dim(1)]
+        conv_result = self.conv(char_embedding.unsqueeze(1)).squeeze(3)
+        # batch_size*c_out
+        word_char_embed = F.max_pool1d(conv_result, conv_result.size(2)).squeeze(2)
+        # batch_size*1*c_out
+        return word_char_embed.unsqueeze(1)
+
+# ref: https://github.com/SeanNaren/deepspeech.pytorch/blob/master/model.py
+# modify it to deal with n-D input (n >= 3)
+# used for character embedding (batch_size*sent_len*word_len*char_embed)
+# similar to TimeDistributed in Keras
+class SequenceWise(nn.Module):
+    def __init__(self, module):
+        super(SequenceWise, self).__init__()
+        self.module = module
+
+    def forward(self, x):
+        size = x.size()[2:]
+        t, n = x.size(0), x.size(1)
+        x = x.view(t * n, *size)
+        x = self.module(x)
+        size = x.size()[2:]
+        x = x.view(t, n, *size)
+        return x
+
+    def __repr__(self):
+        tmpstr = self.__class__.__name__ + ' (\n'
+        tmpstr += self.module.__repr__()
+        tmpstr += ')'
+        return tmpstr

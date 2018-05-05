@@ -14,7 +14,6 @@ from trian import TriAN
 logger = logging.getLogger()
 
 class Model:
-
     def __init__(self, args):
         self.args = args
         self.batch_size = args.batch_size
