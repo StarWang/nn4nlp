@@ -64,6 +64,9 @@ class Model:
         return result
 
     def _softmax_loss(self, prob1, y1, prob2, y2):
+        print (prob1.data.cpu().numpy())
+        print (prob2.data.cpu().numpy())
+        print ()
         return torch.mean(-torch.log((prob1*y1 + prob2*y2 + 1e-5)/(prob1 + prob2 + 1e-5)))
 
 
@@ -77,8 +80,6 @@ class Model:
                 pred_proba2, _ = self._get_bce_loss(batch_input[1])
                 y1 = batch_input[0][-1]
                 y2 = batch_input[1][-1]
-                print (y1 - y2)
-                print ()
                 #y1 = self._zero_to_minus_one(y1)
                 #y2 = self._zero_to_minus_one(y2)
                 #loss = torch.mean(-(y1*torch.log(pred_proba1 + 1e-10) + y2*torch.log(pred_proba2 + 1e-10)))
