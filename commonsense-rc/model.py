@@ -63,6 +63,9 @@ class Model:
             result = Variable(result)
         return result
 
+    def _softmax_loss(self, prob1, y1, prob2, y2):
+        return torch.mean(-torch.log((prob1*y1 + prob2*y2)/(prob1 + prob2 + 1e-5)))
+
 
     def train(self, train_data):
         self.network.train()
@@ -71,10 +74,13 @@ class Model:
         for batch_input in self._iter_data(train_data, train_phase=True):
             if self.args.use_rank_loss:
                 pred_proba1, _ = self._get_bce_loss(batch_input[0])
-                y1 = self._zero_to_minus_one(batch_input[0][-1])
                 pred_proba2, _ = self._get_bce_loss(batch_input[1])
-                y2 = self._zero_to_minus_one(batch_input[1][-1])
-                loss = torch.mean(-(y1*torch.log(pred_proba1 + 1e-10) + y2*torch.log(pred_proba2 + 1e-10)))
+                y1 = batch_input[0][-1]
+                y2 = batch_input[1][-1]
+                #y1 = self._zero_to_minus_one(y1)
+                #y2 = self._zero_to_minus_one(y2)
+                #loss = torch.mean(-(y1*torch.log(pred_proba1 + 1e-10) + y2*torch.log(pred_proba2 + 1e-10)))
+                loss = self._softmax_loss(pred_proba1, y1, pred_proba2, y2)
             else:
                 _, loss = self._get_bce_loss(batch_input)
             self.optimizer.zero_grad()
