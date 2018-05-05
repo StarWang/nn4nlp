@@ -145,7 +145,7 @@ def batchify(batch_data, use_char_emb):
     f_tensor = _to_feature_tensor([ex.features for ex in batch_data])
     y = torch.FloatTensor([ex.label for ex in batch_data])
     p_sentences = _pad_sentence_data([ex.d_words_sentences for ex in batch_data])
-    q_chars, d_chars, c_chars = None
+    q_chars, d_chars, c_chars = None, None, None
     if use_char_emb:
         q_chars = pad_batch_by_char_seq([s.q_chars for s in batch_data])
         d_chars = pad_batch_by_char_seq([s.d_chars for s in batch_data])

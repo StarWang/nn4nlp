@@ -161,9 +161,12 @@ def build_vocab(data=None):
     print('Load relation vocabulary from ./data/rel_vocab...')
     for w in open('./data/rel_vocab', encoding='utf-8'):
         rel_vocab.add(w.strip())
+    print('Rel vocabulary size: %d' % len(rel_vocab))
+    # Load character vocabulary
+    print('Load character vocabulary from ./data/char_vocab...')
     for w in open('./data/char_vocab', encoding='utf-8'):
         char_vocab.add(w.strip('\n'))
-    print('Rel vocabulary size: %d' % len(rel_vocab))
+    print('Char vocabulary size: %d' % len(char_vocab))
 
 def gen_submission(data, prediction):
     assert len(data) == len(prediction)
