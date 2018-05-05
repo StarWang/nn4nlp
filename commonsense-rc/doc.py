@@ -125,7 +125,7 @@ def pad_batch_by_char_seq(sent_word_char_lst):
     batch_size = len(sent_word_char_lst)
     max_sent_len = max([sent.size(1) for sent in sent_word_char_lst])
     max_word_len = max([sent.size(2) for sent in sent_word_char_lst])
-    padded_lst = torch.LongTensor((batch_size, max_sent_len, max_word_len)).fill_(0)
+    padded_lst = torch.LongTensor(batch_size, max_sent_len, max_word_len).fill_(0)
     for i, sent in enumerate(sent_word_char_lst):
         padded_lst[i, :sent_word_char_lst[i].size(1), :sent_word_char_lst[i].size(2)].copy_(sent_word_char_lst[i])
     # sent_len*batch_size*word_len
@@ -162,8 +162,7 @@ def get_chars_ind_lst(word_lst):
 def get_chars_tensor(word_lst):
     chars_ind_lst = get_chars_ind_lst(word_lst)
     max_len = max([len(x) for x in chars_ind_lst])
-    chars = torch.LongTensor((1, len(chars_ind_lst), max_len))
-    print (chars.size())
+    chars = torch.LongTensor(1, len(chars_ind_lst), max_len).fill_(0)
     for w_i, w in enumerate(chars_ind_lst):
         chars[0, w_i, :len(w)].copy_(w)
     return chars
