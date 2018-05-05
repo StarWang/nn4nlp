@@ -64,11 +64,9 @@ class Model:
         return result
 
     def _softmax_loss(self, prob1, y1, prob2, y2):
-        y1 = Variable(y1.data.long())
-        y2 = Variable(y2.data.long())
         print (torch.cat([prob1.unsqueeze(1), prob2.unsqueeze(1)], dim=1))
         return F.cross_entropy(torch.cat([prob1.unsqueeze(1), prob2.unsqueeze(1)], dim=1),
-                               torch.cat([y1.unsqueeze(1), y2.unsqueeze(1)], dim=1))
+                               torch.max(torch.cat([y1.unsqueeze(1), y2.unsqueeze(1)], dim=1))[1])
         print (prob1.data.cpu().numpy())
         print (prob2.data.cpu().numpy())
         print ()
