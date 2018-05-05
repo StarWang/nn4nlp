@@ -33,7 +33,7 @@ class Model:
         self.network.register_buffer('fixed_embedding', self.network.embedding.weight.data[self.finetune_topk:].clone())
         if self.use_cuda:
             self.network.cuda()
-        print(self.network)
+        #print(self.network)
         self._report_num_trainable_parameters()
 
     def _report_num_trainable_parameters(self):
