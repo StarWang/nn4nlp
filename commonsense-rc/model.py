@@ -140,7 +140,7 @@ class Model:
         for i in range(num_iter):
             start_idx = i * self.batch_size
             batch_data = data[start_idx:(start_idx + self.batch_size)]
-            batch_input = batchify(batch_data)
+            batch_input = batchify(batch_data, self.args.use_char_emb)
 
             # Transfer to GPU
             if self.use_cuda:
