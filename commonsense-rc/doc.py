@@ -19,9 +19,9 @@ class Example:
         self.d_ner = input_dict['d_ner']
         self.q_pos = input_dict['q_pos']
         if use_char_emb:
-            self.d_chars = get_chars_ind_lst(input_dict['d_words'].split(' '))
-            self.q_chars = get_chars_ind_lst(input_dict['q_words'].split(' '))
-            self.c_chars = get_chars_ind_lst(input_dict['c_words'].split(' '))
+            self.d_chars = get_chars_tensor(input_dict['d_words'].split(' '))
+            self.q_chars = get_chars_tensor(input_dict['q_words'].split(' '))
+            self.c_chars = get_chars_tensor(input_dict['c_words'].split(' '))
         assert len(self.q_pos) == len(self.question.split()), (self.q_pos, self.question)
         assert len(self.d_pos) == len(self.passage.split())
         self.features = np.stack([input_dict['in_q'], input_dict['in_c'], \
@@ -123,14 +123,13 @@ def _pad_sentence_data(batch_seq):
 # input format: [[w1c1, w1c2, ...], [w2c1, w2c2, ...], ...]
 def pad_batch_by_char_seq(sent_word_char_lst):
     batch_size = len(sent_word_char_lst)
-    max_sent_len = max([len(sent) for sent in sent_word_char_lst])
-    max_word_len = max([len(word) for sent in sent_word_char_lst for word in sent])
-    padded_lst = np.zeros((batch_size, max_sent_len, max_word_len))
+    max_sent_len = max([sent.size(1) for sent in sent_word_char_lst])
+    max_word_len = max([sent.size(2) for sent in sent_word_char_lst])
+    padded_lst = torch.LongTensor((batch_size, max_sent_len, max_word_len)).fill_(0)
     for i, sent in enumerate(sent_word_char_lst):
-        for w_idx, w in enumerate(sent):
-            padded_lst[i, w_idx, :len(w)] = w
+        padded_lst[i, :sent_word_char_lst[i].size(1), :sent_word_char_lst[i].size(2)].copy_(sent_word_char_lst[i])
     # sent_len*batch_size*word_len
-    return torch.LongTensor(padded_lst)
+    return padded_lst
 
 def batchify(batch_data, use_char_emb):
     p, p_mask = _to_indices_and_mask([ex.d_tensor for ex in batch_data])
@@ -158,4 +157,12 @@ def get_chars_ind_lst(word_lst):
     chars = []
     for w in word_lst:
         chars.append([char_vocab[c] for c in w])
+    return chars
+
+def get_chars_tensor(word_lst):
+    chars_ind_lst = get_chars_ind_lst(word_lst)
+    max_len = max([len(x) for x in chars_ind_lst])
+    chars = torch.LongTensor((1, len(chars_ind_lst), max_len))
+    for w_i, w in enumerate(chars_ind_lst):
+        chars[0, w_i, :len(w)].copy_(w)
     return chars
