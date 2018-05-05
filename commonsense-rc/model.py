@@ -64,14 +64,8 @@ class Model:
         return result
 
     def _softmax_loss(self, prob1, y1, prob2, y2):
-        print (torch.cat([prob1.unsqueeze(1), prob2.unsqueeze(1)], dim=1))
         return F.cross_entropy(torch.cat([prob1.unsqueeze(1), prob2.unsqueeze(1)], dim=1),
                                torch.max(torch.cat([y1.unsqueeze(1), y2.unsqueeze(1)], dim=1), 1)[1])
-        print (prob1.data.cpu().numpy())
-        print (prob2.data.cpu().numpy())
-        print ()
-        return torch.mean(-torch.log((prob1*y1 + prob2*y2 + 1e-5)/(prob1 + prob2 + 1e-5)))
-
 
     def train(self, train_data):
         self.network.train()
