@@ -50,7 +50,7 @@ class Model:
         feed_input = [x for x in batch_input[:-1]]
         y = batch_input[-1]
         pred_proba = self.network(*feed_input)
-        loss = F.binary_cross_entropy(pred_proba, y) if not self.use_rank_loss else None
+        loss = F.binary_cross_entropy(pred_proba, y) if not self.args.use_rank_loss else None
         return pred_proba, loss
 
     def _zero_to_minus_one(self, y):
