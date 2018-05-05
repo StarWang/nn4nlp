@@ -74,7 +74,7 @@ class Model:
                 y1 = self._zero_to_minus_one(batch_input[0][-1])
                 pred_proba2, _ = self._get_bce_loss(batch_input[1])
                 y2 = self._zero_to_minus_one(batch_input[1][-1])
-                loss = -(y1*torch.log(pred_proba1) + y2*torch.log(pred_proba2))
+                loss = torch.mean(-(y1*torch.log(pred_proba1) + y2*torch.log(pred_proba2)))
             else:
                 _, loss = self._get_bce_loss(batch_input)
             self.optimizer.zero_grad()
