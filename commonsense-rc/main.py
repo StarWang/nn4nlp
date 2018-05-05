@@ -90,7 +90,7 @@ def main(output_prefix):
 
 if __name__ == '__main__':
     stat = []
-    for seed in [1234, 123]:
+    for seed in [1234]:
         for drop_out in [0.4, 0.3, 0.2, 0.1]:
             for use_char_emb in [False, True]:
                 char_emb_dim_lst = [50, 100, 150, 200] if use_char_emb else [-1]
