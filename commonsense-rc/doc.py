@@ -78,8 +78,8 @@ class ExamplePair:
         p_id1, q_id1, c_id1 = e1.id.split('_')[-3:]
         p_id2, q_id2, c_id2 = e2.id.split('_')[-3:]
         assert p_id1 == p_id2 and q_id1 == q_id2 and c_id1 != c_id2
-        self.e1 = e1
-        self.e2 = e2
+        self.ex1 = e1
+        self.ex2 = e2
 
 
 def _to_indices_and_mask(batch_tensor, need_mask=True):
@@ -177,9 +177,6 @@ def to_example_pair(data):
     for i, ex in enumerate(data):
         if i % 2 == 0:
             continue
-        print (data[i].get_p_q_id())
-        print (data[i - 1].get_p_q_id())
-        print ()
         assert data[i].get_p_q_id() == data[i - 1].get_p_q_id()
         pair_data.append(ExamplePair(data[i - 1], data[i]))
     return pair_data
