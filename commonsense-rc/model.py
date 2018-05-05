@@ -54,7 +54,7 @@ class Model:
         return pred_proba, loss
 
     def _zero_to_minus_one(self, y):
-        y = y.data.cpu.numpy()
+        y = y.data.cpu().numpy()
         result = (np.ones(y.shape)*(-1))**y
         result = torch.FloatTensor(-result)
         if self.args.use_cuda:
